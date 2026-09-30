@@ -1,3 +1,19 @@
+import ctypes.util
+import os
+
+# Patch find_library for Alpine/musl — musl doesn't support the
+# ldconfig/gcc lookup that glibc uses, so pyusb can't find libusb.
+_orig_find = ctypes.util.find_library
+def _find_library_musl(name):
+    result = _orig_find(name)
+    if result:
+        return result
+    path = f"/usr/lib/lib{name}.so"
+    if os.path.exists(path):
+        return path
+    return None
+ctypes.util.find_library = _find_library_musl
+
 import json
 import logging
 import signal
