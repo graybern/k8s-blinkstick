@@ -12,7 +12,7 @@ RUN find /usr/local/lib/python3.12/site-packages -name 'blinkstick.py' \
 
 FROM python:3.12.13-alpine3.22
 
-RUN apk add --no-cache libusb
+RUN apk add --no-cache libusb-dev
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 
