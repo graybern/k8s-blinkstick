@@ -7,12 +7,12 @@
 ### This repo (graybern/k8s-blinkstick)
 - [x] CLAUDE.md — project docs
 - [x] TODO.md — this file
-- [ ] `agent/main.py` — MQTT subscribe, device discovery, set_color, heartbeat, preStop handler
-- [ ] `agent/driver.py` — Thread-safe BlinkStick wrapper (queue.Queue + worker thread)
-- [ ] `agent/effects.py` — Cancellable solid/pulse/blink/morph/off effects
-- [ ] `agent/config.py` — Env vars: MQTT_BROKER, MQTT_PORT, NODE_NAME
-- [ ] `Dockerfile.agent` — Multi-stage Alpine build, pin all versions
-- [ ] `.github/workflows/build.yml` — ARM64 GHCR push on merge to main
+- [x] `agent/main.py` — MQTT subscribe, device discovery, set_color, heartbeat, preStop handler
+- [x] `agent/driver.py` — Thread-safe BlinkStick wrapper (queue.Queue + worker thread)
+- [x] `agent/effects.py` — Cancellable solid/pulse/blink/morph/off effects
+- [x] `agent/config.py` — Env vars: MQTT_BROKER, MQTT_PORT, NODE_NAME
+- [x] `Dockerfile.agent` — Multi-stage Alpine build, pin all versions
+- [x] `.github/workflows/build.yml` — ARM64 GHCR push on merge to main
 
 ### Octolet repo (graybern/octolet → apps/hardware/blinkstick/)
 - [ ] `kustomization.yaml`
