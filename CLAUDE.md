@@ -182,6 +182,7 @@ Dockerfile.controller
 - **Pin everything** — Exact versions for Python, blinkstick, pyusb, paho-mqtt. No floating deps.
 - **Simple stack** — No npm, no React, no ORM, no heavy K8s client. FastAPI + htmx + httpx.
 - **8 LEDs are the canvas** — 4 nodes x 2 LEDs. Every mode should look intentional at this scale.
+- **Public repo — no secrets** — This repo is public. Never commit credentials, API keys, tokens, internal IPs, or cluster-specific secrets. Config references (service DNS, namespaces) are fine. Secrets belong in K8s Secrets on the cluster, never in code or config files here. Review every commit before pushing.
 
 ## Cluster Context (octolet)
 
