@@ -194,12 +194,17 @@ Dockerfile.controller
 - **K8s manifests repo**: `graybern/octolet` → `apps/hardware/blinkstick/`
 - **Mosquitto broker DNS**: `mosquitto.blinkstick.svc.cluster.local:1883`
 
-## Node Names (for MQTT topics and beat sheets)
+## Node Names and Physical Order
+
+Physical left-to-right order in the rack (verified 2026-09-30):
 
 ```
-octolet-control-1  # No BlinkStick (touchscreen node)
-octolet-control-2  # BlinkStick Nano, serial BS051729-3.0
-octolet-control-3  # BlinkStick Nano
-octolet-worker-1   # BlinkStick Nano
-octolet-worker-2   # BlinkStick Nano
+Position:  1 (left)         2                3                4 (right)
+Node:      octolet-control-2  octolet-control-3  octolet-worker-1   octolet-worker-2
+IP:        10.11.12.102       10.11.12.103       10.11.12.104       10.11.12.105
+Serial:    BS051729-3.0       (TBD)              (TBD)              (TBD)
 ```
+
+`octolet-control-1` (10.11.12.101) has no BlinkStick — it's the touchscreen node.
+
+Beat sheets and sweep animations use this physical order for `node_order`.
