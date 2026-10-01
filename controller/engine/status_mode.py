@@ -28,7 +28,10 @@ class StatusMode:
         self._poll_task: asyncio.Task | None = None
 
     async def start(self):
-        await self._prometheus.discover_instance_mapping()
+        try:
+            await self._prometheus.discover_instance_mapping()
+        except Exception:
+            log.exception("Instance mapping discovery failed, using fallback")
         self._poll_task = asyncio.create_task(self._poll_loop())
         log.info("Status mode started (poll every %ds)", STATUS_POLL_INTERVAL)
 
@@ -108,8 +111,9 @@ class StatusMode:
                 if health_data:
                     self._node_health = health_data
                     log.debug("Prometheus poll: %d nodes", len(health_data))
+                await asyncio.sleep(STATUS_POLL_INTERVAL)
             except asyncio.CancelledError:
-                raise
+                return
             except Exception:
                 log.exception("Prometheus poll failed, keeping last known state")
-            await asyncio.sleep(STATUS_POLL_INTERVAL)
+                await asyncio.sleep(STATUS_POLL_INTERVAL)

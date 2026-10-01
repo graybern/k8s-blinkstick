@@ -113,11 +113,12 @@ class ModeEngine:
         while True:
             try:
                 await self._tick()
+                await asyncio.sleep(1.0)
             except asyncio.CancelledError:
-                raise
+                return
             except Exception:
                 log.exception("Mode engine tick failed")
-            await asyncio.sleep(1.0)
+                await asyncio.sleep(1.0)
 
     async def _tick(self):
         state = None
@@ -171,18 +172,23 @@ class ModeEngine:
 
     def _schedule_final_command(self, node: str, cmd: dict, delay: float):
         async def _send_after_delay():
-            await asyncio.sleep(delay + 0.1)
-            final = {
-                "action": "set",
-                "leds": cmd["leds"],
-                "effect": cmd.get("effect", "solid"),
-                "params": cmd.get("params", {}),
-            }
-            self._mqtt.publish_to_node(node, final)
-            self._last_published[node] = {
-                "leds": final["leds"],
-                "effect": final["effect"],
-                "params": final["params"],
-            }
+            try:
+                await asyncio.sleep(delay + 0.1)
+                final = {
+                    "action": "set",
+                    "leds": cmd["leds"],
+                    "effect": cmd.get("effect", "solid"),
+                    "params": cmd.get("params", {}),
+                }
+                self._mqtt.publish_to_node(node, final)
+                self._last_published[node] = {
+                    "leds": final["leds"],
+                    "effect": final["effect"],
+                    "params": final["params"],
+                }
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                log.exception("Failed to send final command to %s", node)
 
         asyncio.create_task(_send_after_delay())
