@@ -20,4 +20,7 @@ COPY agent/ /app/agent/
 
 WORKDIR /app
 
+# Unbuffered output so logs appear immediately in kubectl logs
+ENV PYTHONUNBUFFERED=1
+
 CMD ["python", "-m", "agent.main"]
