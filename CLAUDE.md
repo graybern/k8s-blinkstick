@@ -72,6 +72,26 @@ Effects: `solid`, `blink` (delay, repeats), `pulse` (duration, steps, repeats), 
 
 Music sync uses `"action": "schedule", "execute_at": <unix_timestamp>` for wall-clock aligned beats.
 
+### LED Addressing
+
+Addressing is two-dimensional: the **topic** picks the node(s), the **leds array** picks which LEDs on those nodes.
+
+| Want | How |
+|------|-----|
+| All 8 LEDs same color | `cmd/all` + both indexes in leds array |
+| All off | `cmd/all` + `{"action":"off"}` |
+| Left side all nodes | `cmd/all` + `[{"index":0,...}]` only |
+| Right side all nodes | `cmd/all` + `[{"index":1,...}]` only |
+| One specific node | `cmd/{node-name}` + both indexes |
+| One specific LED | `cmd/{node-name}` + `[{"index":0,...}]` |
+| All 8 different colors | 4 separate per-node commands (no cluster-wide single command yet) |
+
+Omitting an index from the leds array leaves that LED unchanged. The controller (Phase 2) will handle cluster-wide orchestration — translating one API call into per-node MQTT commands.
+
+### MQTT Delivery vs Execution Timing
+
+MQTT delivery is **not** simultaneous — the broker sends to each subscriber sequentially with a few ms of jitter. For solid colors and simple effects this is invisible. For music mode (Phase 3), agents will use wall-clock scheduling: commands arrive with `"execute_at": <unix_timestamp>`, agents buffer and execute at that wall-clock moment. All Pis run NTP (systemd-timesyncd), clocks synced within ~5-10ms.
+
 ### Agent Design
 
 - **Thread model**: Main thread = paho-mqtt client. USB commands go through a `queue.Queue` to a dedicated worker thread. Never touch the BlinkStick from the MQTT thread.
