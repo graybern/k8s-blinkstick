@@ -1,8 +1,7 @@
-import asyncio
 import logging
 import threading
-from contextlib import asynccontextmanager
 
+import asyncio
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -20,22 +19,29 @@ logging.basicConfig(
 )
 log = logging.getLogger("controller")
 
+app = FastAPI(title="BlinkStick Controller")
+app.include_router(router)
+
 
 def _run_engine_loop(engine: ModeEngine, default_mode: str):
     loop = asyncio.new_event_loop()
     engine.set_loop(loop)
     try:
         loop.run_until_complete(engine.start(default_mode))
+        log.info("Engine loop running")
         loop.run_forever()
     except Exception:
         log.exception("Engine loop crashed")
     finally:
         loop.run_until_complete(engine.stop())
         loop.close()
+        log.info("Engine loop stopped")
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+@app.on_event("startup")
+async def startup():
+    log.info("Starting up...")
+
     mqtt_client = MQTTClient()
     prometheus = PrometheusClient()
     k8s = K8sClient()
@@ -58,19 +64,17 @@ async def lifespan(app: FastAPI):
     app.state.engine_thread = engine_thread
     log.info("Engine thread started")
 
-    yield
 
+@app.on_event("shutdown")
+async def shutdown():
     log.info("Shutting down...")
+    engine = app.state.engine
     engine.request_stop()
-    engine_thread.join(timeout=5.0)
-    mqtt_client.disconnect()
-    await prometheus.close()
-    await k8s.close()
+    app.state.engine_thread.join(timeout=5.0)
+    app.state.mqtt_client.disconnect()
+    await app.state.prometheus.close()
+    await app.state.k8s.close()
     log.info("Controller stopped")
-
-
-app = FastAPI(title="BlinkStick Controller", lifespan=lifespan)
-app.include_router(router)
 
 
 @app.get("/healthz")
