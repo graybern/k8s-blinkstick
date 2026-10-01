@@ -1,47 +1,66 @@
 # BlinkStick
 
-LED orchestration for [BlinkStick Nano](https://www.blinkstick.com/products/blinkstick-nano) USB devices across a Raspberry Pi K3s cluster. Eight individually controllable RGB LEDs (4 nodes x 2 LEDs each), driven via MQTT with cancellable animation effects.
+LED orchestration for [BlinkStick](https://www.blinkstick.com/) USB devices across a Kubernetes cluster. Deploy MQTT agents as a DaemonSet, and every node with a BlinkStick becomes a programmable RGB LED — controllable individually, by group, or cluster-wide in a single command. The controller discovers nodes and LED counts automatically; the system scales from a 2-node test bench to a full rack.
+
+Built for Raspberry Pi K3s clusters on ARM64, but works on any K8s distribution where nodes have USB-attached BlinkStick devices.
 
 ![Architecture](docs/architecture.svg)
 
-## Hardware
+> *The diagram above shows the author's 5-node RPi cluster. Your deployment may have fewer or more nodes — the system adapts automatically.*
 
-| Node | Role | BlinkStick | Position |
-|------|------|-----------|----------|
-| octolet-control-1 | Touchscreen (tainted) | None | — |
-| octolet-control-2 | Control plane | Nano (BS051729-3.0) | Left |
-| octolet-control-3 | Control plane | Nano | Center-left |
-| octolet-worker-1 | Worker | Nano | Center-right |
-| octolet-worker-2 | Worker | Nano | Right |
+## How It Works
 
-- **Cluster**: 5-node Raspberry Pi K3s, all ARM64/Ubuntu 24.04
-- **Each Nano**: 2 independently addressable RGB LEDs (index 0, index 1)
-- **USB access**: Privileged containers with `/dev/bus/usb` host mount
+1. **Agent** (DaemonSet) runs on every node, discovers the local BlinkStick via USB, and subscribes to MQTT commands
+2. **Mosquitto** (Deployment) brokers MQTT messages between the controller and agents
+3. **Controller** (Deployment) queries Prometheus for cluster health and translates it into LED colors — or accepts direct commands via REST API
+
+Agents publish their device state (present, serial, LED count) to MQTT. The controller discovers nodes dynamically — no hardcoded node list. Add a node with a BlinkStick, deploy the agent, and the controller picks it up on the next tick.
+
+## Supported Devices
+
+Any [BlinkStick](https://www.blinkstick.com/) USB device works. LED count is read from each device automatically.
+
+| Device | LEDs | Tested |
+|--------|------|--------|
+| BlinkStick Nano | 2 | Yes (primary target) |
+| BlinkStick Strip | 8 | Should work |
+| BlinkStick Pro | Up to 64 | Should work |
 
 ## Quick Start
 
-The system has two repos:
-- **This repo** (`graybern/k8s-blinkstick`): Application code, Dockerfiles, CI
-- **Manifests** (`graybern/octolet` → `apps/hardware/blinkstick/`): K8s DaemonSet, Mosquitto, ConfigMaps
+### Prerequisites
+
+- A Kubernetes cluster (K3s, k3d, or any distro) with nodes that have BlinkStick USB devices
+- ARM64 or AMD64 nodes (images built for ARM64; rebuild for other architectures)
+- A Prometheus stack (for status mode health visualization)
+- USB access: host udev rule `SUBSYSTEM=="usb", ATTR{idVendor}=="20a0", MODE="0666"` recommended
 
 ### Deploy
 
+The system spans two repos:
+- **This repo** (`k8s-blinkstick`): Application code, Dockerfiles, CI
+- **Manifests repo**: K8s DaemonSet, Deployments, Mosquitto, ConfigMaps
+
 ```bash
-# 1. Push to main triggers CI → builds ARM64 image → pushes to GHCR
+# Push to main triggers CI → builds ARM64 images → pushes to GHCR
 git push origin main
 
-# 2. ArgoCD deploys from octolet repo automatically
-# Or manually: kubectl apply -k apps/hardware/blinkstick/
+# Apply manifests (or let ArgoCD/Flux handle it)
+kubectl apply -k path/to/blinkstick-manifests/
 ```
 
 ### Verify
 
 ```bash
-# Check all pods are running
+# Check pods
 kubectl get pods -n blinkstick
 
 # Check agent logs
 kubectl logs -n blinkstick -l app=blinkstick-agent --tail=20
+
+# Check controller API
+curl http://<controller-ingress>/api/v1/nodes    # discovered agents
+curl http://<controller-ingress>/api/v1/status   # health + LED state
 
 # Send a test command (exec into mosquitto pod)
 kubectl exec -n blinkstick deploy/mosquitto -- \
@@ -51,7 +70,7 @@ kubectl exec -n blinkstick deploy/mosquitto -- \
 
 ## Command Reference
 
-Commands are JSON payloads published to MQTT topics. The broker is at `mosquitto.blinkstick.svc.cluster.local:1883`.
+Commands are JSON payloads published to MQTT topics.
 
 ### Topics
 
@@ -75,34 +94,35 @@ Commands are JSON payloads published to MQTT topics. The broker is at `mosquitto
 }
 ```
 
-### Cluster-Wide (All 8 LEDs Independently)
+Omitting an LED index from the array leaves that LED unchanged.
+
+### Cluster-Wide
+
+Address every node independently in a single message:
 
 ```json
 {
   "action": "set",
   "nodes": {
-    "octolet-control-2": [{"index": 0, "r": 255, "g": 0, "b": 0}, {"index": 1, "r": 0, "g": 0, "b": 255}],
-    "octolet-control-3": [{"index": 0, "r": 0, "g": 255, "b": 0}, {"index": 1, "r": 255, "g": 255, "b": 0}],
-    "octolet-worker-1":  [{"index": 0, "r": 255, "g": 0, "b": 255}, {"index": 1, "r": 0, "g": 255, "b": 255}],
-    "octolet-worker-2":  [{"index": 0, "r": 255, "g": 128, "b": 0}, {"index": 1, "r": 128, "g": 0, "b": 255}]
+    "node-a": [{"index": 0, "r": 255, "g": 0, "b": 0}, {"index": 1, "r": 0, "g": 0, "b": 255}],
+    "node-b": [{"index": 0, "r": 0, "g": 255, "b": 0}, {"index": 1, "r": 255, "g": 255, "b": 0}]
   },
   "effect": "solid",
   "params": {}
 }
 ```
 
-Each agent extracts only its own node's LEDs. Nodes not in the dict are unaffected.
+Each agent extracts only its own node's LEDs. Nodes not in the dict are unaffected. Effect and params are global across the message.
 
 ### Common Operations
 
-| Want | Topic | Payload |
-|------|-------|---------|
-| All LEDs green | `cmd/all` | `{"action":"set","leds":[{"index":0,"r":0,"g":255,"b":0},{"index":1,"r":0,"g":255,"b":0}],"effect":"solid","params":{}}` |
-| All LEDs off | `cmd/all` | `{"action":"off"}` |
-| Left side only | `cmd/all` | `{"action":"set","leds":[{"index":0,"r":255,"g":0,"b":0}],"effect":"solid","params":{}}` |
-| Right side only | `cmd/all` | `{"action":"set","leds":[{"index":1,"r":0,"g":0,"b":255}],"effect":"solid","params":{}}` |
-| One node | `cmd/octolet-control-2` | Same as broadcast format |
-| One LED | `cmd/octolet-control-2` | `{"action":"set","leds":[{"index":0,"r":255,"g":0,"b":0}],"effect":"solid","params":{}}` |
+| Want | How |
+|------|-----|
+| All LEDs one color | `cmd/all` + both indexes |
+| All LEDs off | `cmd/all` + `{"action":"off"}` |
+| One side of all devices | `cmd/all` + single index in leds array |
+| One specific node | `cmd/{node-name}` |
+| Every node different | `cmd/cluster` with per-node leds in `nodes` dict |
 
 ## Effects
 
@@ -116,44 +136,88 @@ Each agent extracts only its own node's LEDs. Nodes not in the dict are unaffect
 
 All animations are cancellable — sending a new command immediately preempts the running effect.
 
+## Status Mode (Controller)
+
+When the controller runs in status mode, it polls Prometheus and maps cluster health to LED visualizations:
+
+| State | Color | Effect | Meaning |
+|-------|-------|--------|---------|
+| Healthy | Green | Breathing pulse (3s) | All systems nominal |
+| Warning | Amber | Solid | CPU > 70%, memory > 70%, or disk > 80% |
+| Critical | Red | Fast blink (500ms) | Node down, not Ready, or resource > 90% |
+| Agent offline | Dim blue | Solid | MQTT agent disconnected |
+
+The visualization is readable from across the room — color tells you *what*, effect tells you *how urgent*.
+
+### REST API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/healthz` | Liveness probe |
+| GET | `/readyz` | Readiness probe (503 if MQTT disconnected) |
+| GET | `/api/v1/status` | Node health + current LED state |
+| GET | `/api/v1/modes` | Available modes |
+| GET | `/api/v1/modes/active` | Current mode |
+| POST | `/api/v1/modes/active` | Switch mode (`{"mode": "status"}` or `{"mode": "direct"}`) |
+| POST | `/api/v1/direct` | Send LED command (direct mode only, else 409) |
+| GET | `/api/v1/nodes` | Discovered node registry |
+
 ## Architecture
 
-### Components
+### Agent
 
-- **Agent** (DaemonSet) — Runs on every node. Subscribes to MQTT, drives the local USB BlinkStick via a thread-safe worker queue. No mode logic — just a USB driver.
-- **Mosquitto** (Deployment) — MQTT broker. Routes commands from publishers to agent subscribers.
-- **Controller** (Phase 2) — Will add a REST API, mode engine, and Prometheus-driven health visualization.
-
-### Agent Design
-
-- MQTT callbacks run on paho's network thread; USB commands go through a `queue.Queue` to a dedicated worker thread (never touch USB from the MQTT thread)
-- Effects are cancellable loops using direct `set_color()` calls with a `threading.Event` checked between steps
-- Graceful degradation: nodes without a BlinkStick publish `{"present": false}` and retry every 30s
+- Runs as a DaemonSet on every node — discovers BlinkStick USB devices automatically
+- MQTT callbacks on paho's network thread; USB commands routed through a `queue.Queue` to a dedicated worker thread
+- Effects are cancellable loops using direct `set_color()` calls with a `threading.Event` between steps
+- Graceful degradation: nodes without a BlinkStick publish `{"present": false}` and keep running
 - On SIGTERM: sets LEDs to dim amber ("reconciling"), then exits cleanly
-- On startup: subscribes to `blinkstick/mode/active` (retained) for state recovery
+
+### Controller
+
+- FastAPI app with asyncio tasks for the mode engine, Prometheus poller, and MQTT client
+- Layered mode engine: background (status), event overlay (Phase 4), foreground (direct control)
+- Dynamic node discovery from MQTT retained messages — no hardcoded node count
+- LED count per device read from agent state — works with Nano (2), Strip (8), or Pro (64)
+- In-memory state only — defaults to status mode on restart (fail-safe)
 
 ### MQTT Delivery
 
-MQTT delivery is not simultaneous — the broker sends to each subscriber sequentially with a few ms of jitter. For solid colors and simple effects this is invisible. Phase 3 will add wall-clock scheduling (`"execute_at": <unix_timestamp>`) for music synchronization, using NTP-synced clocks (~5-10ms accuracy).
+MQTT delivery is not simultaneous — the broker sends to each subscriber sequentially with a few ms of jitter. For solid colors and simple effects this is invisible. Phase 3 will add wall-clock scheduling for music synchronization, using NTP-synced clocks (~5-10ms accuracy).
 
 ## Project Structure
 
 ```
 agent/
-  main.py           # MQTT client, device discovery, heartbeat, shutdown
-  driver.py         # Thread-safe BlinkStick wrapper (queue + worker)
-  effects.py        # Cancellable solid/pulse/blink/morph/off
-  config.py         # Environment variable parsing
-Dockerfile.agent    # Multi-stage Alpine build, all versions pinned
+  main.py             # MQTT client, device discovery, heartbeat, shutdown
+  driver.py           # Thread-safe BlinkStick wrapper (queue + worker)
+  effects.py          # Cancellable solid/pulse/blink/morph/off
+  config.py           # Environment variable parsing
+controller/
+  main.py             # FastAPI app, lifespan, healthz/readyz
+  config.py           # Environment variable parsing
+  api/
+    routes.py         # REST endpoints
+    models.py         # Pydantic models
+  engine/
+    mode_engine.py    # Layered state machine
+    status_mode.py    # Prometheus health → LED colors
+  services/
+    mqtt_client.py    # MQTT publisher + state subscriber
+    prometheus.py     # httpx → Prometheus API
+    k8s.py            # K8s API client (SA token + httpx)
+Dockerfile.agent      # Agent image (Alpine + blinkstick + pyusb)
+Dockerfile.controller # Controller image (Alpine + FastAPI + httpx)
 .github/workflows/
-  build.yml         # ARM64 GHCR push on merge to main
+  build.yml           # ARM64 GHCR push on merge to main
 docs/
-  architecture.svg  # System architecture diagram
+  architecture.svg    # System architecture diagram
 ```
 
 ## Version Pinning
 
-All dependencies are pinned to exact versions tested on the cluster hardware:
+All dependencies are pinned to exact versions tested on cluster hardware:
+
+**Agent**
 
 | Dependency | Version |
 |-----------|---------|
@@ -163,12 +227,24 @@ All dependencies are pinned to exact versions tested on the cluster hardware:
 | paho-mqtt | 2.1.0 (v2 API) |
 | libusb | `libusb-dev` (Alpine — must be `-dev` for pyusb symlink) |
 
+**Controller**
+
+| Dependency | Version |
+|-----------|---------|
+| Python | 3.12.13 on Alpine 3.22 |
+| FastAPI | 0.128.8 |
+| uvicorn | 0.39.0 |
+| httpx | 0.28.1 |
+| paho-mqtt | 2.1.0 (v2 API) |
+| pydantic | 2.13.5 |
+| jinja2 | 3.1.6 |
+
 ## Roadmap
 
 See [TODO.md](TODO.md) for the full phased plan.
 
 - **Phase 1** — Agent + MQTT + Effects (complete)
-- **Phase 2** — Controller + Status Mode (Prometheus health visualization)
+- **Phase 2** — Controller + Status Mode (complete)
 - **Phase 3** — Web UI + Music Mode (beat sheets, wall-clock sync)
 - **Phase 4** — Event Overlays + Creative Modes (Twingate, ArgoCD, Knight Rider)
 
