@@ -20,6 +20,7 @@ COPY controller/ /app/controller/
 WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
+LABEL build.bust="2026-10-01"
 
 EXPOSE 8000
 
