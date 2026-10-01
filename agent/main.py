@@ -67,9 +67,13 @@ def on_message(client, userdata, msg):
 
     if msg.topic == "blinkstick/cmd/cluster":
         nodes = payload.get("nodes", {})
-        leds = nodes.get(NODE_NAME)
-        if leds is None:
+        node_config = nodes.get(NODE_NAME)
+        if node_config is None:
             return
+        if isinstance(node_config, list):
+            leds = node_config
+        else:
+            leds = node_config.get("leds", [])
         payload = {
             "action": payload.get("action"),
             "leds": leds,

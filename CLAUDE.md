@@ -89,21 +89,19 @@ Addressing is two-dimensional: the **topic** picks the node(s), the **leds array
 
 Omitting an index from the leds array leaves that LED unchanged.
 
-Cluster-wide command payload (`blinkstick/cmd/cluster`):
+Cluster-wide command payload (`blinkstick/cmd/cluster`) — two accepted formats for node values:
 ```json
 {
   "action": "set",
   "nodes": {
     "octolet-control-2": [{"index": 0, "r": 255, "g": 0, "b": 0}, {"index": 1, "r": 0, "g": 0, "b": 255}],
-    "octolet-control-3": [{"index": 0, "r": 0, "g": 255, "b": 0}, {"index": 1, "r": 255, "g": 255, "b": 0}],
-    "octolet-worker-1":  [{"index": 0, "r": 255, "g": 0, "b": 255}, {"index": 1, "r": 0, "g": 255, "b": 255}],
-    "octolet-worker-2":  [{"index": 0, "r": 255, "g": 128, "b": 0}, {"index": 1, "r": 128, "g": 0, "b": 255}]
+    "octolet-control-3": {"leds": [{"index": 0, "r": 0, "g": 255, "b": 0}, {"index": 1, "r": 255, "g": 255, "b": 0}]}
   },
   "effect": "solid",
   "params": {}
 }
 ```
-Each agent extracts its own node from `nodes`, ignores the rest. `effect` and `params` are global. Nodes not in the dict are unaffected.
+Each agent extracts its own node from `nodes`, ignores the rest. Node values can be a plain leds array or an object with a `leds` key — both work. `effect` and `params` are global. Nodes not in the dict are unaffected.
 
 ### MQTT Delivery vs Execution Timing
 
