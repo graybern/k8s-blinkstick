@@ -1,6 +1,6 @@
 # BlinkStick — Implementation Phases
 
-## Phase 1: Foundation — Agent + MQTT + Green Pulse ✅ CURRENT
+## Phase 1: Foundation — Agent + MQTT + Green Pulse ✅ COMPLETE (2026-09-30)
 
 **Goal:** DaemonSet agents running on cluster, controllable via MQTT. Left-to-right green pulse across 4 nodes.
 
@@ -15,13 +15,19 @@
 - [x] `.github/workflows/build.yml` — ARM64 GHCR push on merge to main
 
 ### Octolet repo (graybern/octolet → apps/hardware/blinkstick/)
-- [ ] `kustomization.yaml`
-- [ ] `namespace.yaml`
-- [ ] `daemonset.yaml` — tolerates all NoSchedule, privileged, /dev/bus/usb, preStop hook
-- [ ] `deployment-mosquitto.yaml` — eclipse-mosquitto:2
-- [ ] `service-mosquitto.yaml` — ClusterIP :1883
-- [ ] `configmap-agent.yaml` — MQTT broker address
-- [ ] `configmap-mosquitto.yaml` — listener 1883, allow_anonymous
+- [x] `kustomization.yaml`
+- [x] `namespace.yaml`
+- [x] `daemonset.yaml` — tolerates all taints, privileged, /dev/bus/usb
+- [x] `deployment-mosquitto.yaml` — eclipse-mosquitto:2
+- [x] `service-mosquitto.yaml` — ClusterIP :1883
+- [x] `configmap-agent.yaml` — MQTT broker address
+- [x] `configmap-mosquitto.yaml` — listener 1883, allow_anonymous
+
+### Lessons learned
+- Alpine/musl: `ctypes.util.find_library` doesn't work — must monkey-patch before importing pyusb
+- `libusb-dev` needed in runtime stage (not just `libusb`) for the unversioned `.so` symlink
+- Physical node order (L→R): control-2, control-3, worker-1, worker-2
+- Python stdout buffering makes logs appear empty — not a crash indicator, check restart count instead
 
 ### Verify
 ```bash
