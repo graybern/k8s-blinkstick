@@ -32,10 +32,14 @@
 ### Verified on hardware (2026-09-30)
 - All 5 agent pods running (4 with BlinkStick, control-1 gracefully degraded with `{"present": false}`)
 - Mosquitto broker reachable at `mosquitto.blinkstick.svc.cluster.local:1883`
-- `mosquitto_pub` sets colors on both LEDs independently — green, blue, off all confirmed
+- Per-node commands (`blinkstick/cmd/{node}`) — sets colors on both LEDs independently
+- Broadcast commands (`blinkstick/cmd/all`) — all 8 LEDs at once
+- Cluster-wide commands (`blinkstick/cmd/cluster`) — all 8 LEDs to different colors in one message
+- Effects: solid, off verified via MQTT (pulse/blink/morph available, untested via MQTT)
 - USB disconnect recovery via USBError catch + device retry loop
 - No preStop hook needed — agent handles SIGTERM directly (amber + clean exit)
 - `terminationGracePeriodSeconds: 10` gives headroom for worker join (5s timeout)
+- `PYTHONUNBUFFERED=1` ensures immediate log visibility
 
 ```bash
 # Verified command format:

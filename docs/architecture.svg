@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" font-family="system-ui, -apple-system, sans-serif">
+  <style>
+    text { fill: #24292f; }
+    @media (prefers-color-scheme: dark) {
+      text { fill: #e6edf3; }
+      .box { stroke: #484f58; }
+      .arrow { stroke: #484f58; }
+      .label-bg { fill: #161b22; }
+    }
+    .box { fill: none; stroke: #d1d9e0; stroke-width: 1.5; rx: 8; }
+    .box-agent { fill: #dafbe1; stroke: #1a7f37; }
+    .box-agent-no { fill: #f6f8fa; stroke: #d1d9e0; stroke-dasharray: 4 3; }
+    .box-broker { fill: #ddf4ff; stroke: #0969da; }
+    .box-controller { fill: #fff8c5; stroke: #9a6700; stroke-dasharray: 6 3; }
+    .arrow { fill: none; stroke: #656d76; stroke-width: 1.5; marker-end: url(#arrowhead); }
+    .arrow-pub { stroke: #0969da; }
+    .arrow-cmd { stroke: #1a7f37; }
+    .label-bg { fill: #ffffff; }
+    .led { stroke: #24292f; stroke-width: 1; }
+    .text-small { font-size: 11px; }
+    .text-label { font-size: 13px; font-weight: 600; }
+    .text-title { font-size: 12px; font-weight: 600; }
+    .text-dim { fill: #656d76; font-size: 10px; }
+    .text-phase { fill: #9a6700; font-size: 10px; font-style: italic; }
+    @media (prefers-color-scheme: dark) {
+      .box-agent { fill: #0d1117; stroke: #3fb950; }
+      .box-agent-no { fill: #0d1117; stroke: #484f58; }
+      .box-broker { fill: #0d1117; stroke: #58a6ff; }
+      .box-controller { fill: #0d1117; stroke: #d29922; }
+      .led { stroke: #e6edf3; }
+      .text-dim { fill: #8b949e; }
+      .text-phase { fill: #d29922; }
+    }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#656d76"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="28" text-anchor="middle" font-size="16" font-weight="700">BlinkStick Architecture</text>
+  <text x="400" y="46" text-anchor="middle" class="text-dim">MQTT-based LED orchestration across a Raspberry Pi K3s cluster</text>
+
+  <!-- Controller (Phase 2 - dashed) -->
+  <rect x="310" y="68" width="180" height="54" class="box box-controller"/>
+  <text x="400" y="90" text-anchor="middle" class="text-label">Controller</text>
+  <text x="400" y="106" text-anchor="middle" class="text-small">FastAPI + Mode Engine</text>
+  <text x="498" y="82" class="text-phase">Phase 2</text>
+
+  <!-- Arrow: Controller → Broker -->
+  <line x1="400" y1="122" x2="400" y2="162" class="arrow arrow-pub"/>
+  <text x="412" y="146" class="text-dim">publish</text>
+
+  <!-- Mosquitto Broker -->
+  <rect x="295" y="164" width="210" height="54" class="box box-broker"/>
+  <text x="400" y="186" text-anchor="middle" class="text-label">Mosquitto Broker</text>
+  <text x="400" y="202" text-anchor="middle" class="text-small">MQTT pub/sub router</text>
+
+  <!-- Fan-out arrows -->
+  <line x1="400" y1="218" x2="400" y2="258" class="arrow arrow-cmd"/>
+  <line x1="400" y1="240" x2="100" y2="240" class="arrow" style="marker-end:none"/>
+  <line x1="400" y1="240" x2="700" y2="240" class="arrow" style="marker-end:none"/>
+
+  <line x1="100" y1="240" x2="100" y2="280" class="arrow arrow-cmd"/>
+  <line x1="250" y1="240" x2="250" y2="280" class="arrow arrow-cmd"/>
+  <line x1="400" y1="240" x2="400" y2="280" class="arrow arrow-cmd"/>
+  <line x1="550" y1="240" x2="550" y2="280" class="arrow arrow-cmd"/>
+  <line x1="700" y1="240" x2="700" y2="280" class="arrow arrow-cmd"/>
+
+  <!-- Topic labels -->
+  <rect x="296" y="248" width="208" height="16" class="label-bg" rx="3"/>
+  <text x="400" y="260" text-anchor="middle" class="text-dim">blinkstick/cmd/{all, node, cluster}</text>
+
+  <!-- Node: control-1 (no BlinkStick) -->
+  <rect x="40" y="282" width="120" height="90" class="box box-agent-no"/>
+  <text x="100" y="304" text-anchor="middle" class="text-title">control-1</text>
+  <text x="100" y="320" text-anchor="middle" class="text-dim">10.11.12.101</text>
+  <text x="100" y="340" text-anchor="middle" class="text-small">No BlinkStick</text>
+  <text x="100" y="356" text-anchor="middle" class="text-dim">(touchscreen)</text>
+
+  <!-- Node: control-2 -->
+  <rect x="190" y="282" width="120" height="90" class="box box-agent"/>
+  <text x="250" y="304" text-anchor="middle" class="text-title">control-2</text>
+  <text x="250" y="320" text-anchor="middle" class="text-dim">10.11.12.102</text>
+  <circle cx="235" cy="342" r="8" class="led" fill="#ff4444"/>
+  <circle cx="265" cy="342" r="8" class="led" fill="#4488ff"/>
+  <text x="235" y="364" text-anchor="middle" class="text-dim">L0</text>
+  <text x="265" y="364" text-anchor="middle" class="text-dim">L1</text>
+
+  <!-- Node: control-3 -->
+  <rect x="340" y="282" width="120" height="90" class="box box-agent"/>
+  <text x="400" y="304" text-anchor="middle" class="text-title">control-3</text>
+  <text x="400" y="320" text-anchor="middle" class="text-dim">10.11.12.103</text>
+  <circle cx="385" cy="342" r="8" class="led" fill="#44cc44"/>
+  <circle cx="415" cy="342" r="8" class="led" fill="#ffcc00"/>
+  <text x="385" y="364" text-anchor="middle" class="text-dim">L0</text>
+  <text x="415" y="364" text-anchor="middle" class="text-dim">L1</text>
+
+  <!-- Node: worker-1 -->
+  <rect x="490" y="282" width="120" height="90" class="box box-agent"/>
+  <text x="550" y="304" text-anchor="middle" class="text-title">worker-1</text>
+  <text x="550" y="320" text-anchor="middle" class="text-dim">10.11.12.104</text>
+  <circle cx="535" cy="342" r="8" class="led" fill="#cc44ff"/>
+  <circle cx="565" cy="342" r="8" class="led" fill="#00cccc"/>
+  <text x="535" y="364" text-anchor="middle" class="text-dim">L0</text>
+  <text x="565" y="364" text-anchor="middle" class="text-dim">L1</text>
+
+  <!-- Node: worker-2 -->
+  <rect x="640" y="282" width="120" height="90" class="box box-agent"/>
+  <text x="700" y="304" text-anchor="middle" class="text-title">worker-2</text>
+  <text x="700" y="320" text-anchor="middle" class="text-dim">10.11.12.105</text>
+  <circle cx="685" cy="342" r="8" class="led" fill="#ff8800"/>
+  <circle cx="715" cy="342" r="8" class="led" fill="#8800ff"/>
+  <text x="685" y="364" text-anchor="middle" class="text-dim">L0</text>
+  <text x="715" y="364" text-anchor="middle" class="text-dim">L1</text>
+
+  <!-- Physical order label -->
+  <text x="100" y="400" class="text-dim">← Physical rack order (left to right) →</text>
+  <line x1="100" y1="390" x2="700" y2="390" stroke="#d1d9e0" stroke-width="0.5" stroke-dasharray="3 3"/>
+
+  <!-- State flow arrows (agents → broker) -->
+  <text x="400" y="430" text-anchor="middle" class="text-dim">Agents publish state back to broker:</text>
+  <text x="400" y="446" text-anchor="middle" font-size="11" font-family="monospace" class="text-small">blinkstick/state/{node}/device  →  {"present": true, "serial": "BS051729-3.0", "leds": 2}</text>
+  <text x="400" y="462" text-anchor="middle" font-size="11" font-family="monospace" class="text-small">blinkstick/state/{node}/online  →  "1" (retained)  |  LWT: "0" on disconnect</text>
+
+  <!-- Legend -->
+  <rect x="40" y="482" width="14" height="14" class="box box-agent" rx="3"/>
+  <text x="60" y="494" class="text-dim">Agent with BlinkStick</text>
+  <rect x="200" y="482" width="14" height="14" class="box box-agent-no" rx="3"/>
+  <text x="220" y="494" class="text-dim">Agent (no device)</text>
+  <rect x="360" y="482" width="14" height="14" class="box box-broker" rx="3"/>
+  <text x="380" y="494" class="text-dim">MQTT Broker</text>
+  <rect x="500" y="482" width="14" height="14" class="box box-controller" rx="3"/>
+  <text x="520" y="494" class="text-dim">Future (Phase 2+)</text>
+</svg>
