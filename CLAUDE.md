@@ -48,8 +48,9 @@ The `get_color()` method still breaks on Python 3.12+ even with master. Our code
 
 Topics:
 ```
-blinkstick/cmd/all              # Controller → Agents: broadcast command
+blinkstick/cmd/all              # Controller → Agents: broadcast (same command to all)
 blinkstick/cmd/{node-name}      # Controller → Agent: per-node command
+blinkstick/cmd/cluster          # Controller → Agents: per-node colors in one message
 blinkstick/state/{node}/device  # Agent → Controller: {"present":true,"serial":"BS051729-3.0","leds":2}
 blinkstick/state/{node}/online  # "1" retained on connect, LWT sets "0" on disconnect
 blinkstick/mode/active          # Retained: current mode configuration
@@ -84,9 +85,25 @@ Addressing is two-dimensional: the **topic** picks the node(s), the **leds array
 | Right side all nodes | `cmd/all` + `[{"index":1,...}]` only |
 | One specific node | `cmd/{node-name}` + both indexes |
 | One specific LED | `cmd/{node-name}` + `[{"index":0,...}]` |
-| All 8 different colors | 4 separate per-node commands (no cluster-wide single command yet) |
+| All 8 different colors | `cmd/cluster` with per-node leds in `nodes` dict |
 
-Omitting an index from the leds array leaves that LED unchanged. The controller (Phase 2) will handle cluster-wide orchestration — translating one API call into per-node MQTT commands.
+Omitting an index from the leds array leaves that LED unchanged.
+
+Cluster-wide command payload (`blinkstick/cmd/cluster`):
+```json
+{
+  "action": "set",
+  "nodes": {
+    "octolet-control-2": [{"index": 0, "r": 255, "g": 0, "b": 0}, {"index": 1, "r": 0, "g": 0, "b": 255}],
+    "octolet-control-3": [{"index": 0, "r": 0, "g": 255, "b": 0}, {"index": 1, "r": 255, "g": 255, "b": 0}],
+    "octolet-worker-1":  [{"index": 0, "r": 255, "g": 0, "b": 255}, {"index": 1, "r": 0, "g": 255, "b": 255}],
+    "octolet-worker-2":  [{"index": 0, "r": 255, "g": 128, "b": 0}, {"index": 1, "r": 128, "g": 0, "b": 255}]
+  },
+  "effect": "solid",
+  "params": {}
+}
+```
+Each agent extracts its own node from `nodes`, ignores the rest. `effect` and `params` are global. Nodes not in the dict are unaffected.
 
 ### MQTT Delivery vs Execution Timing
 

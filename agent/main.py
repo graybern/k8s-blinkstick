@@ -44,6 +44,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
     log.info("Connected to MQTT broker (rc=%s)", reason_code)
     client.subscribe(f"blinkstick/cmd/{NODE_NAME}")
     client.subscribe("blinkstick/cmd/all")
+    client.subscribe("blinkstick/cmd/cluster")
     client.subscribe("blinkstick/mode/active")
     client.publish(f"blinkstick/state/{NODE_NAME}/online", "1", retain=True)
     publish_device_state(client)
@@ -63,6 +64,18 @@ def on_message(client, userdata, msg):
     if msg.topic == "blinkstick/mode/active":
         log.info("Mode update: %s", payload)
         return
+
+    if msg.topic == "blinkstick/cmd/cluster":
+        nodes = payload.get("nodes", {})
+        leds = nodes.get(NODE_NAME)
+        if leds is None:
+            return
+        payload = {
+            "action": payload.get("action"),
+            "leds": leds,
+            "effect": payload.get("effect", "solid"),
+            "params": payload.get("params", {}),
+        }
 
     action = payload.get("action")
     if action == "set":
