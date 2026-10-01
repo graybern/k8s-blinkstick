@@ -29,14 +29,19 @@
 - Physical node order (L→R): control-2, control-3, worker-1, worker-2
 - Python stdout buffering makes logs appear empty — not a crash indicator, check restart count instead
 
-### Verify
+### Verified on hardware (2026-09-30)
+- All 5 agent pods running (4 with BlinkStick, control-1 gracefully degraded with `{"present": false}`)
+- Mosquitto broker reachable at `mosquitto.blinkstick.svc.cluster.local:1883`
+- `mosquitto_pub` sets colors on both LEDs independently — green, blue, off all confirmed
+- USB disconnect recovery via USBError catch + device retry loop
+- No preStop hook needed — agent handles SIGTERM directly (amber + clean exit)
+- `terminationGracePeriodSeconds: 10` gives headroom for worker join (5s timeout)
+
 ```bash
-# Exec into mosquitto pod and send commands:
+# Verified command format:
 mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
   '{"action":"set","leds":[{"index":0,"r":0,"g":255,"b":0},{"index":1,"r":0,"g":255,"b":0}],"effect":"pulse","params":{"duration":1000}}'
 ```
-
-### Pause — audit agent USB reliability, MQTT delivery, graceful degradation on control-1
 
 ---
 

@@ -27,16 +27,18 @@ These exact versions are battle-tested on the cluster. Do not change without tes
 
 | Dependency | Version | Why |
 |-----------|---------|-----|
-| Python | 3.12.x | Matches Ubuntu 24.04 system Python on the nodes |
-| BlinkStick | 1.2.0 from **git master** | PyPI v1.2.0 has a Python 3.12 `collections.Callable` bug. Master has the fix (PR #84). Install with `pip install git+https://github.com/arvydas/blinkstick-python.git@master` |
+| Python | 3.12.13 on Alpine 3.22 | Pinned exactly in Dockerfile — `python:3.12.13-alpine3.22` |
+| BlinkStick | 1.2.0 from git commit `8140b9fa` | PyPI v1.2.0 has a Python 3.12 `collections.Callable` bug. Master has the fix (PR #84). Pinned to commit hash for reproducibility. |
 | pyusb | 1.3.1 | USB backend for Linux |
-| paho-mqtt | 2.1.0 | MQTT client |
-| libusb | OS package (`apk add libusb`) | Required by pyusb at runtime |
+| paho-mqtt | 2.1.0 | MQTT client (v2 API — `CallbackAPIVersion.VERSION2`) |
+| libusb | OS package (`apk add libusb-dev`) | **Must be `libusb-dev`, not `libusb`** — pyusb needs the unversioned `libusb-1.0.so` symlink that only `-dev` provides |
 
-**Additional fix**: After installing blinkstick from master, patch any remaining `collections.Callable` → `collections.abc.Callable` references:
+**Additional fix 1 — collections.Callable**: After installing blinkstick, patch any remaining `collections.Callable` → `collections.abc.Callable` references:
 ```bash
 find /path/to/site-packages -name 'blinkstick.py' -exec sed -i 's/collections\.Callable/collections.abc.Callable/g' {} +
 ```
+
+**Additional fix 2 — Alpine/musl find_library**: `ctypes.util.find_library()` does not work on Alpine (musl libc lacks ldconfig/gcc lookup). pyusb cannot discover libusb even when installed. The agent patches `find_library` at startup (before any blinkstick/usb import) to fall back to a direct `/usr/lib/lib{name}.so` path check. This patch MUST run before any `import usb` or `from blinkstick import blinkstick`.
 
 The `get_color()` method still breaks on Python 3.12+ even with master. Our code avoids calling it — we only use `set_color()`, `turn_off()`, `find_first()`, `find_all()`, `get_serial()`.
 
