@@ -106,7 +106,7 @@ async def set_active_mode(request: Request, body: ModeSwitch) -> dict:
             status_code=400,
             content={"error": f"Unknown mode: {body.mode}. Available: {available}"},
         )
-    await engine.set_mode(body.mode)
+    engine.run_coroutine(engine.set_mode(body.mode))
     return {"mode": engine.active_mode}
 
 
@@ -127,7 +127,7 @@ async def direct_control(request: Request, body: LEDCommand) -> dict:
     }
     if body.node:
         payload["node"] = body.node
-    await engine.direct_command(payload)
+    engine.run_coroutine(engine.direct_command(payload))
     return {"status": "sent", "node": body.node or "all"}
 
 

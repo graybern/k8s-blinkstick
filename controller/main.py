@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import threading
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -19,6 +21,19 @@ logging.basicConfig(
 log = logging.getLogger("controller")
 
 
+def _run_engine_loop(engine: ModeEngine, default_mode: str):
+    loop = asyncio.new_event_loop()
+    engine.set_loop(loop)
+    try:
+        loop.run_until_complete(engine.start(default_mode))
+        loop.run_forever()
+    except Exception:
+        log.exception("Engine loop crashed")
+    finally:
+        loop.run_until_complete(engine.stop())
+        loop.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     mqtt_client = MQTTClient()
@@ -34,18 +49,20 @@ async def lifespan(app: FastAPI):
     mqtt_client.connect()
     log.info("MQTT client connected")
 
-    await engine.start(DEFAULT_MODE)
-    log.info("Mode engine started with default mode: %s", DEFAULT_MODE)
+    engine_thread = threading.Thread(
+        target=_run_engine_loop,
+        args=(engine, DEFAULT_MODE),
+        daemon=True,
+    )
+    engine_thread.start()
+    app.state.engine_thread = engine_thread
+    log.info("Engine thread started")
 
-    log.info("Lifespan startup complete, yielding to uvicorn")
-    try:
-        yield
-    except BaseException as e:
-        log.error("Lifespan interrupted by %s: %s", type(e).__name__, e)
-        raise
+    yield
 
     log.info("Shutting down...")
-    await engine.stop()
+    engine.request_stop()
+    engine_thread.join(timeout=5.0)
     mqtt_client.disconnect()
     await prometheus.close()
     await k8s.close()

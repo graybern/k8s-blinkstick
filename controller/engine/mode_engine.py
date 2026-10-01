@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import threading
 
 from controller.services.mqtt_client import MQTTClient
 from controller.services.prometheus import PrometheusClient
@@ -36,6 +37,16 @@ class ModeEngine:
         self._active_mode_name = ""
         self._last_published: dict[str, dict] = {}
         self._tick_task: asyncio.Task | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._stop_event = threading.Event()
+
+    def set_loop(self, loop: asyncio.AbstractEventLoop):
+        self._loop = loop
+
+    def request_stop(self):
+        self._stop_event.set()
+        if self._loop and self._loop.is_running():
+            self._loop.call_soon_threadsafe(self._loop.stop)
 
     @property
     def active_mode(self) -> str:
@@ -109,8 +120,14 @@ class ModeEngine:
         else:
             self._mqtt.publish_to_all(cmd)
 
+    def run_coroutine(self, coro):
+        if self._loop and self._loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+            return future.result(timeout=10)
+        return None
+
     async def _tick_loop(self):
-        while True:
+        while not self._stop_event.is_set():
             try:
                 await self._tick()
                 await asyncio.sleep(1.0)
