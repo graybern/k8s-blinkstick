@@ -37,7 +37,12 @@ async def lifespan(app: FastAPI):
     await engine.start(DEFAULT_MODE)
     log.info("Mode engine started with default mode: %s", DEFAULT_MODE)
 
-    yield
+    log.info("Lifespan startup complete, yielding to uvicorn")
+    try:
+        yield
+    except BaseException as e:
+        log.error("Lifespan interrupted by %s: %s", type(e).__name__, e)
+        raise
 
     log.info("Shutting down...")
     await engine.stop()

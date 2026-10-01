@@ -3,8 +3,9 @@ FROM python:3.12.13-alpine3.22 AS builder
 RUN apk add --no-cache gcc musl-dev
 
 RUN pip install --no-cache-dir \
-    fastapi==0.128.8 \
-    "uvicorn[standard]==0.39.0" \
+    fastapi==0.115.12 \
+    starlette==0.46.2 \
+    "uvicorn[standard]==0.34.2" \
     httpx==0.28.1 \
     paho-mqtt==2.1.0 \
     pydantic==2.13.5 \
