@@ -218,7 +218,8 @@ Dockerfile.controller
 - **GitOps configs, runtime experiments** — Permanent configs in git (octolet repo). Quick experiments via web upload. Export to promote.
 - **Pin everything** — Exact versions for Python, blinkstick, pyusb, paho-mqtt. No floating deps.
 - **Simple stack** — No npm, no React, no ORM, no heavy K8s client. FastAPI + htmx + httpx.
-- **8 LEDs are the canvas** — 4 nodes x 2 LEDs. Every mode should look intentional at this scale.
+- **The cluster's LEDs are the canvas** — Every mode should look intentional regardless of node count. The current deployment has 4 nodes x 2 LEDs = 8 LEDs, but the system scales to any number.
+- **Dynamic discovery** — The controller discovers nodes and LED counts from MQTT agent state, not config. Node count and LEDs-per-device are never hardcoded.
 - **Public repo — no secrets** — This repo is public. Never commit credentials, API keys, tokens, internal IPs, or cluster-specific secrets. Config references (service DNS, namespaces) are fine. Secrets belong in K8s Secrets on the cluster, never in code or config files here. Review every commit before pushing.
 
 ## Cluster Context (octolet)

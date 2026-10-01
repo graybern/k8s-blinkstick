@@ -49,20 +49,20 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ---
 
-## Phase 2: Controller + Status Mode
+## Phase 2: Controller + Status Mode ✅ CURRENT
 
 **Goal:** Automatic cluster health visualization via web API (no UI yet).
 
 ### This repo
-- [ ] `controller/main.py` — FastAPI, lifespan, /healthz, /readyz
-- [ ] `controller/engine/mode_engine.py` — Layered state machine (background + overlay + foreground)
-- [ ] `controller/engine/status_mode.py` — Prometheus polling, priority rules → colors
-- [ ] `controller/services/mqtt_client.py` — Publisher + state subscriber
-- [ ] `controller/services/prometheus.py` — httpx → Prometheus API
-- [ ] `controller/services/k8s.py` — httpx + SA token → ConfigMap watch
-- [ ] `controller/api/routes.py` — Mode switch, node status, direct control
-- [ ] `controller/api/models.py` — Pydantic models
-- [ ] `Dockerfile.controller`
+- [x] `controller/main.py` — FastAPI, lifespan, /healthz, /readyz
+- [x] `controller/engine/mode_engine.py` — Layered state machine (background + overlay + foreground)
+- [x] `controller/engine/status_mode.py` — Prometheus polling, priority rules → colors + effects
+- [x] `controller/services/mqtt_client.py` — Publisher + state subscriber + dynamic node discovery
+- [x] `controller/services/prometheus.py` — httpx → Prometheus API + dynamic instance mapping
+- [x] `controller/services/k8s.py` — httpx + SA token → ConfigMap listing (Phase 3 scaffold)
+- [x] `controller/api/routes.py` — Mode switch, node status, direct control
+- [x] `controller/api/models.py` — Pydantic models
+- [x] `Dockerfile.controller`
 
 ### Octolet repo
 - [ ] `deployment-controller.yaml`, `service-controller.yaml`

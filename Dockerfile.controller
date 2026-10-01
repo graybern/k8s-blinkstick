@@ -1,0 +1,25 @@
+FROM python:3.12.13-alpine3.22 AS builder
+
+RUN apk add --no-cache gcc musl-dev
+
+RUN pip install --no-cache-dir \
+    fastapi==0.128.8 \
+    "uvicorn[standard]==0.39.0" \
+    httpx==0.28.1 \
+    paho-mqtt==2.1.0 \
+    pydantic==2.13.5 \
+    jinja2==3.1.6
+
+FROM python:3.12.13-alpine3.22
+
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+
+COPY controller/ /app/controller/
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 8000
+
+CMD ["python", "-m", "uvicorn", "controller.main:app", "--host", "0.0.0.0", "--port", "8000"]
