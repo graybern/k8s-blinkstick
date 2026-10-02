@@ -1,7 +1,7 @@
+import asyncio
 import logging
 import threading
 
-import asyncio
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -23,25 +23,37 @@ app = FastAPI(title="BlinkStick Controller")
 app.include_router(router)
 
 
-def _run_engine_loop(engine: ModeEngine, default_mode: str):
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
+
+
+@app.get("/readyz")
+async def readyz():
+    if not hasattr(app.state, "mqtt_client"):
+        return JSONResponse(status_code=503, content={"status": "not ready", "reason": "starting"})
+    mqtt = app.state.mqtt_client
+    if not mqtt.is_connected():
+        return JSONResponse(status_code=503, content={"status": "not ready", "reason": "MQTT not connected"})
+    return {"status": "ready"}
+
+
+def _run_engine(engine: ModeEngine, default_mode: str):
     loop = asyncio.new_event_loop()
     engine.set_loop(loop)
     try:
         loop.run_until_complete(engine.start(default_mode))
-        log.info("Engine loop running")
+        log.info("Engine running")
         loop.run_forever()
     except Exception:
-        log.exception("Engine loop crashed")
+        log.exception("Engine crashed")
     finally:
         loop.run_until_complete(engine.stop())
         loop.close()
-        log.info("Engine loop stopped")
+        log.info("Engine stopped")
 
 
-@app.on_event("startup")
-async def startup():
-    log.info("Starting up...")
-
+def main():
     mqtt_client = MQTTClient()
     prometheus = PrometheusClient()
     k8s = K8sClient()
@@ -56,46 +68,22 @@ async def startup():
     log.info("MQTT client connected")
 
     engine_thread = threading.Thread(
-        target=_run_engine_loop,
+        target=_run_engine,
         args=(engine, DEFAULT_MODE),
         daemon=True,
     )
     engine_thread.start()
-    app.state.engine_thread = engine_thread
     log.info("Engine thread started")
 
+    log.info("Starting uvicorn...")
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
 
-@app.on_event("shutdown")
-async def shutdown():
-    log.info("Shutting down...")
-    engine = app.state.engine
+    log.info("Uvicorn exited, cleaning up...")
     engine.request_stop()
-    app.state.engine_thread.join(timeout=5.0)
-    app.state.mqtt_client.disconnect()
-    await app.state.prometheus.close()
-    await app.state.k8s.close()
+    engine_thread.join(timeout=5.0)
+    mqtt_client.disconnect()
     log.info("Controller stopped")
 
 
-@app.get("/healthz")
-async def healthz():
-    return {"status": "ok"}
-
-
-@app.get("/readyz")
-async def readyz():
-    mqtt = app.state.mqtt_client
-    if not mqtt.is_connected():
-        return JSONResponse(
-            status_code=503,
-            content={"status": "not ready", "reason": "MQTT not connected"},
-        )
-    return {"status": "ready"}
-
-
 if __name__ == "__main__":
-    uvicorn.run(
-        "controller.main:app",
-        host="0.0.0.0",
-        port=8000,
-    )
+    main()
