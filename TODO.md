@@ -49,7 +49,7 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ---
 
-## Phase 2: Controller + Status Mode ✅ CURRENT
+## Phase 2: Controller + Status Mode ✅ COMPLETE (2026-10-02)
 
 **Goal:** Automatic cluster health visualization via web API (no UI yet).
 
@@ -65,19 +65,26 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] `Dockerfile.controller`
 
 ### Octolet repo
-- [ ] `deployment-controller.yaml`, `service-controller.yaml`
-- [ ] `ingress.yaml` — blinkstick.octolet.int
-- [ ] `serviceaccount.yaml`, `clusterrole.yaml`, `clusterrolebinding.yaml`
-- [ ] `role-configmap-writer.yaml`, `rolebinding-configmap-writer.yaml`
-- [ ] `configmap-controller.yaml` — Prometheus URL, Loki URL, default mode
-- [ ] `configs/status-default.yaml` — Default threshold→color rules
+- [x] `deployment-controller.yaml`, `service-controller.yaml`
+- [x] `ingress.yaml` — blinkstick.octolet.int
+- [x] `serviceaccount.yaml`, `clusterrole.yaml`, `clusterrolebinding.yaml`
+- [x] `role.yaml`, `rolebinding.yaml` — namespace-scoped ConfigMap CRUD
+- [x] `configmap-controller.yaml` — Prometheus URL, default mode
 
-### Verify
-- `curl blinkstick.octolet.int/api/v1/status` → see node health
-- Green LEDs = healthy. Stress a node → color changes.
-- `curl -X POST blinkstick.octolet.int/api/v1/modes/active -d '{"mode":"direct"}'` → manual control
+### Verified
+- `/api/v1/nodes` — all 5 nodes discovered, 4 with BlinkStick serials, all online
+- `/api/v1/status` — green pulse = healthy on all nodes
+- `/api/v1/modes` — status (active) + direct available
+- Controller stable: 0 restarts, 20+ minutes uptime
 
-### Pause — audit Prometheus integration, mode switching, API stability
+### Lessons learned
+- Starlette lifespan (both `@asynccontextmanager` and `@app.on_event`) has a CancelledError bug — bypass entirely by owning lifecycle in `main()`
+- uvloop conflicts with `asyncio.new_event_loop()` in threads — use plain `uvicorn` not `uvicorn[standard]`
+- Engine runs in its own daemon thread with its own event loop, uvicorn runs in main thread
+- Liveness probe removed — readiness probe only for now (liveness was killing the pod during startup)
+- GHCR packages must be set to public manually (per-package, not per-repo)
+- containerd aggressively caches `:latest` tags — use SHA tags or scale-to-zero to force fresh pulls
+- K3s client certs expire after 1 year — regenerate from `/etc/rancher/k3s/k3s.yaml` on a control plane node
 
 ---
 
