@@ -93,21 +93,29 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 **Goal:** Full web interface, beat sheet library, GitOps config pipeline.
 
 ### This repo
-- [ ] `controller/engine/music_mode.py` — Beat sheet player, pre-buffered wall-clock scheduling
-- [ ] `controller/templates/` — Dashboard, music library, mode config, direct control, settings
-- [ ] `web/static/css/style.css` — Use /frontend-design skill for opinionated approach
-- [ ] `web/static/js/app.js` — WebSocket client, UI logic
-- [ ] `web/static/js/htmx.min.js`
-- [ ] Agent: add `schedule` action for wall-clock beat sync
+- [ ] Beat sheet format with sections/repeats (define in CLAUDE.md)
+- [ ] `controller/engine/music_mode.py` — Pre-load full timetable to agents, NTP clock sync check
+- [ ] Built-in preset patterns (chase, alternate, rainbow, flash, police) — zero-YAML quick start
+- [ ] `controller/api/routes.py` — Song CRUD, presets, template routes, WebSocket /ws/live
+- [ ] `controller/api/models.py` — BeatSheet Pydantic validation model
+- [ ] `controller/services/k8s.py` — ConfigMap CRUD + polling watcher + immediate startup load
+- [ ] `controller/engine/mode_engine.py` — Register music mode
+- [ ] `controller/main.py` — Mount static files, Jinja2 templates
+- [ ] `controller/templates/` — base, dashboard, music, modes, direct, settings (dark mode, 800x480+desktop)
+- [ ] `web/static/` — CSS, JS, htmx.min.js
+- [ ] Agent: `play_sequence` action (full timetable, NTP tick), `stop_sequence`, `time_check`
+- [ ] `Dockerfile.controller` — Add pyyaml, COPY web/
 
 ### Octolet repo
-- [ ] `songs/jingle-bells.yaml` — First beat sheet
+- [ ] `songs/jingle-bells.yaml` — First beat sheet (with timing.loop, on_end, sections)
 - [ ] Update kustomization.yaml with configMapGenerator entries
 
 ### Verify
-- Play beat sheet → synchronized LEDs across 4 nodes
-- Upload runtime config via web → appears in library
-- Export runtime config → downloadable YAML
+- Play beat sheet via web UI → synchronized LEDs across 4 nodes (NTP-synced)
+- Quick pattern (preset) via web UI → instant LED effect, no YAML
+- Upload runtime beat sheet → appears in library → play → export YAML
+- WebSocket live updates on dashboard
+- Clock sync check passes before playback
 
 ### Pause — audit web UX, music sync accuracy, config pipeline
 
