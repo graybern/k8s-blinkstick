@@ -18,6 +18,7 @@ import json
 import logging
 import signal
 import threading
+import time
 
 import paho.mqtt.client as mqtt
 
@@ -38,6 +39,7 @@ log = logging.getLogger("agent")
 
 driver = BlinkStickDriver()
 shutdown_event = threading.Event()
+mqtt_client_ref = None
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
@@ -90,6 +92,16 @@ def on_message(client, userdata, msg):
             "effect": "off",
             "params": {},
         })
+    elif action == "play_sequence":
+        driver.play_sequence(payload)
+    elif action == "stop_sequence":
+        driver.stop_sequence()
+    elif action == "time_check":
+        if mqtt_client_ref:
+            mqtt_client_ref.publish(
+                f"blinkstick/state/{NODE_NAME}/clock",
+                json.dumps({"time": time.time()}),
+            )
     else:
         log.warning("Unknown action: %s", action)
 
@@ -137,6 +149,9 @@ def main():
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.on_message = on_message
+
+    global mqtt_client_ref
+    mqtt_client_ref = client
 
     log.info("Connecting to %s:%s as %s", MQTT_BROKER, MQTT_PORT, NODE_NAME)
     client.connect(MQTT_BROKER, MQTT_PORT)
