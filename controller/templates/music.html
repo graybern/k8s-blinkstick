@@ -1,13 +1,82 @@
 {% extends "base.html" %}
+{% set page = "music" %}
 {% block title %}Music — BlinkStick{% endblock %}
 {% block content %}
-<h2>Music Library</h2>
-<div id="song-list"></div>
 <h2>Quick Patterns</h2>
-<div id="presets"></div>
+<div class="action-bar">
+  <button class="btn primary" onclick="playPreset('chase')">Chase</button>
+  <button class="btn" onclick="playPreset('alternate')">Alternate</button>
+  <button class="btn" onclick="playPreset('rainbow')">Rainbow</button>
+  <button class="btn" onclick="playPreset('flash')">Flash</button>
+  <button class="btn" onclick="playPreset('police')">Police</button>
+  <div class="action-sep"></div>
+  <button class="btn danger" onclick="stopPlayback()">Stop</button>
+</div>
+
+<div class="form-row">
+  <div class="form-group">
+    <label for="preset-bpm">BPM</label>
+    <input type="number" id="preset-bpm" value="120" min="20" max="300">
+  </div>
+  <div class="form-group">
+    <label for="preset-color">Color</label>
+    <input type="color" id="preset-color" value="#00ff00">
+  </div>
+  <div class="form-group">
+    <label for="preset-color2">Color 2</label>
+    <input type="color" id="preset-color2" value="#0000ff">
+  </div>
+</div>
+
+<div class="now-playing" id="now-playing" hidden></div>
+
+<h2>Song Library</h2>
+<div id="song-list"><div class="empty-state">Loading songs...</div></div>
+
 <h2>Upload Beat Sheet</h2>
-<form id="upload-form">
-  <textarea id="yaml-input" rows="12" placeholder="Paste YAML beat sheet..."></textarea>
-  <button type="submit" class="btn primary">Upload</button>
+<form id="upload-form" onsubmit="return uploadSong(event)">
+  <textarea id="yaml-input" rows="12" placeholder="Paste YAML beat sheet here..."></textarea>
+  <div class="action-bar">
+    <button type="submit" class="btn primary">Upload</button>
+  </div>
 </form>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadSongs() {
+  const songs = await apiGet('/songs');
+  const el = document.getElementById('song-list');
+  if (!songs.length) { el.innerHTML = '<div class="empty-state">No songs uploaded yet</div>'; return; }
+  el.innerHTML = songs.map(s => `
+    <div class="song-item">
+      <span class="song-name">${s.title || s.name}</span>
+      <span class="song-meta">${s.bpm} bpm</span>
+      <button class="btn" onclick="apiPost('/songs/${s.name}/play')">Play</button>
+      <button class="btn" onclick="exportSong('${s.name}')">Export</button>
+      <button class="btn danger" onclick="deleteSong('${s.name}')">Delete</button>
+    </div>`).join('');
+}
+async function uploadSong(e) {
+  e.preventDefault();
+  const yaml = document.getElementById('yaml-input').value;
+  if (!yaml.trim()) return false;
+  await apiPost('/songs', { yaml_content: yaml });
+  document.getElementById('yaml-input').value = '';
+  loadSongs();
+  return false;
+}
+async function exportSong(name) {
+  const resp = await fetch(`${API}/songs/${name}/export`);
+  const text = await resp.text();
+  const blob = new Blob([text], { type: 'text/yaml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `${name}.yaml`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+async function deleteSong(name) {
+  await apiDelete(`/songs/${name}`);
+  loadSongs();
+}
+document.addEventListener('DOMContentLoaded', loadSongs);
+</script>
 {% endblock %}

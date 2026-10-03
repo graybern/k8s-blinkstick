@@ -1,7 +1,46 @@
 {% extends "base.html" %}
+{% set page = "settings" %}
 {% block title %}Settings — BlinkStick{% endblock %}
 {% block content %}
-<h2>Settings</h2>
-<div id="clock-sync"></div>
-<div id="system-info"></div>
+<h2>Clock Sync</h2>
+<div id="clock-sync"><div class="empty-state">Loading...</div></div>
+<div class="action-bar">
+  <button class="btn" onclick="checkClock()">Check clock sync</button>
+</div>
+
+<h2>System Info</h2>
+<div id="system-info"><div class="empty-state">Loading...</div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadSettings() {
+  const nodes = await apiGet('/nodes');
+  const el = document.getElementById('clock-sync');
+  el.innerHTML = '<div class="node-table-wrap"><div class="node-header" style="grid-template-columns:1fr 80px 80px 100px;min-width:400px"><span>node</span><span>online</span><span>clock</span><span>last seen</span></div><div class="node-list" style="min-width:400px">' +
+    nodes.map(n => {
+      const skew = n.clock_skew_ms != null ? `${Math.round(n.clock_skew_ms)}ms` : '--';
+      const skewClass = n.clock_skew_ms > 200 ? ' hot' : '';
+      const seen = n.last_seen ? `${Math.round((Date.now()/1000 - n.last_seen))}s ago` : '--';
+      return `<div class="node-row" style="grid-template-columns:1fr 80px 80px 100px">
+        <div class="node-id"><span class="dot ${n.online ? 'ok' : 'off'}"></span>${n.name}</div>
+        <div class="val">${n.online ? 'yes' : 'no'}</div>
+        <div class="val${skewClass}">${skew}</div>
+        <div class="val">${seen}</div>
+      </div>`;
+    }).join('') + '</div></div>';
+
+  const sysEl = document.getElementById('system-info');
+  const status = await apiGet('/status');
+  sysEl.innerHTML = `
+    <div class="song-item"><span class="song-name">Mode</span><span class="song-meta">${status.active_mode}</span></div>
+    <div class="song-item"><span class="song-name">Agents</span><span class="song-meta">${nodes.length} discovered</span></div>
+    <div class="song-item"><span class="song-name">Active</span><span class="song-meta">${nodes.filter(n=>n.online).length} online</span></div>
+    <div class="song-item"><span class="song-name">Devices</span><span class="song-meta">${nodes.filter(n=>n.present).length} with BlinkStick</span></div>`;
+}
+async function checkClock() {
+  await apiPost('/songs/stop').catch(() => {});
+  setTimeout(loadSettings, 3000);
+}
+document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
 {% endblock %}

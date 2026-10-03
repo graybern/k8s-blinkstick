@@ -13,11 +13,25 @@
     <a href="/modes" class="{% if page == 'modes' %}active{% endif %}">Modes</a>
     <a href="/direct" class="{% if page == 'direct' %}active{% endif %}">Direct</a>
     <a href="/settings" class="{% if page == 'settings' %}active{% endif %}">Settings</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-status">
+      <span class="ws-dot disconnected"></span>
+      <span class="ws-time">--</span>
+    </div>
+    <select class="theme-select" id="theme-picker" aria-label="Theme">
+      <option value="system">System</option>
+      <option value="light">Light</option>
+      <option value="dark">Dark</option>
+      <option value="midnight">Midnight</option>
+      <option value="terminal">Terminal</option>
+    </select>
   </nav>
+  <div id="alerts"></div>
   <main>
     {% block content %}{% endblock %}
   </main>
   <script src="/static/js/htmx.min.js"></script>
   <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

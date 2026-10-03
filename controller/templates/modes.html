@@ -1,6 +1,25 @@
 {% extends "base.html" %}
+{% set page = "modes" %}
 {% block title %}Modes — BlinkStick{% endblock %}
 {% block content %}
 <h2>Mode Selection</h2>
-<div id="mode-list"></div>
+<div id="mode-list"><div class="empty-state">Loading modes...</div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadModes() {
+  const modes = await apiGet('/modes');
+  const el = document.getElementById('mode-list');
+  el.innerHTML = modes.map(m => `
+    <div class="mode-card${m.active ? ' active' : ''}" onclick="setMode('${m.name}')">
+      <div class="mode-name">${m.name}</div>
+      <div class="mode-layer">${m.layer} · ${m.led_strategy}${m.active ? ' · active' : ''}</div>
+    </div>`).join('');
+}
+async function setMode(name) {
+  await apiPost('/modes/active', { mode: name });
+  loadModes();
+}
+document.addEventListener('DOMContentLoaded', loadModes);
+</script>
 {% endblock %}

@@ -1,14 +1,12 @@
 {% extends "base.html" %}
+{% set page = "dashboard" %}
 {% block title %}Dashboard — BlinkStick{% endblock %}
 {% block content %}
-<section class="led-section" id="led-strip"></section>
+<section class="led-section" id="led-strip">
+  <div class="empty-state">Connecting to cluster...</div>
+</section>
 <div class="panels" id="panels"></div>
-<div id="now-playing"></div>
+<div class="now-playing" id="now-playing" hidden></div>
 <section class="node-section" id="nodes"></section>
 <div class="action-bar" id="actions"></div>
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.BlinkStick) window.BlinkStick.initDashboard();
-  });
-</script>
 {% endblock %}
