@@ -100,11 +100,33 @@ class MQTTClient:
             retain=True,
         )
 
+    def publish_time_check(self):
+        self._client.publish(
+            "blinkstick/cmd/all",
+            json.dumps({"action": "time_check"}),
+        )
+
+    def publish_to_node_raw(self, node: str, payload: dict):
+        self._client.publish(
+            f"blinkstick/cmd/{node}",
+            json.dumps(payload),
+        )
+
+    def get_clock_skew(self, node: str) -> float | None:
+        with self._lock:
+            info = self._node_registry.get(node, {})
+            ct = info.get("clock_time")
+            cr = info.get("clock_received_at")
+            if ct and cr:
+                return abs(ct - cr) * 1000
+            return None
+
     def _on_connect(self, client, userdata, flags, reason_code, properties):
         log.info("Connected to MQTT broker (rc=%s)", reason_code)
         self._connected = True
         client.subscribe("blinkstick/state/+/device")
         client.subscribe("blinkstick/state/+/online")
+        client.subscribe("blinkstick/state/+/clock")
 
     def _on_disconnect(self, client, userdata, flags, reason_code, properties):
         log.warning("Disconnected from MQTT broker (rc=%s)", reason_code)
@@ -150,3 +172,11 @@ class MQTTClient:
                     log.info("Node %s online=%s", node_name, online)
                 except UnicodeDecodeError:
                     log.warning("Invalid online payload from %s", node_name)
+
+            elif subtopic == "clock":
+                try:
+                    data = json.loads(msg.payload.decode())
+                    self._node_registry[node_name]["clock_time"] = data.get("time", 0)
+                    self._node_registry[node_name]["clock_received_at"] = time.time()
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    log.warning("Invalid clock payload from %s", node_name)

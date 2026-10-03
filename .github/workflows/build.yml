@@ -8,6 +8,7 @@ on:
       - "Dockerfile.agent"
       - "controller/**"
       - "Dockerfile.controller"
+      - "web/**"
       - ".github/workflows/build.yml"
 
 jobs:

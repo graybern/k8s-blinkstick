@@ -1,0 +1,44 @@
+/* BlinkStick Panel — placeholder CSS, will be replaced in Commit 3 with full themed design */
+:root {
+  --bg: #0a0e12;
+  --surface: #121820;
+  --border: #1e2a36;
+  --text: #c8d0d8;
+  --dim: #6a7a88;
+  --accent: #22c55e;
+  --font: 'JetBrains Mono', monospace;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.nav {
+  display: flex; gap: 2px; padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg); z-index: 10;
+}
+.nav a {
+  color: var(--dim); text-decoration: none; padding: 10px 14px;
+  font-size: 12px; border-radius: 4px; min-height: 44px;
+  display: flex; align-items: center;
+}
+.nav a.active { color: var(--accent); background: rgba(34,197,94,0.12); }
+.btn {
+  padding: 0 16px; height: 44px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 4px;
+  color: var(--text); font-family: var(--font); font-size: 11px;
+  cursor: pointer; display: inline-flex; align-items: center;
+}
+.btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+h2 { font-size: 14px; color: var(--dim); font-weight: 600; margin: 16px 0 8px; }
+textarea {
+  width: 100%; background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font); font-size: 12px;
+  border-radius: 4px; padding: 10px; resize: vertical;
+}

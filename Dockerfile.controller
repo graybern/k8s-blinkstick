@@ -7,18 +7,20 @@ RUN pip install --no-cache-dir \
     httpx==0.28.1 \
     paho-mqtt==2.1.0 \
     pydantic==2.13.5 \
-    jinja2==3.1.6
+    jinja2==3.1.6 \
+    pyyaml==6.0.2
 
 FROM python:3.12.13-alpine3.22
 
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 
 COPY controller/ /app/controller/
+COPY web/ /app/web/
 
 WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
-LABEL build.bust="2026-10-01"
+LABEL build.bust="2026-10-03"
 
 EXPOSE 8000
 

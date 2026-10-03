@@ -55,6 +55,77 @@ class K8sClient:
             log.exception("Failed to list ConfigMaps in %s", namespace)
             return []
 
+    async def get_configmap(self, namespace: str, name: str) -> dict | None:
+        client = self._get_client()
+        if not client:
+            return None
+        try:
+            resp = await client.get(f"/api/v1/namespaces/{namespace}/configmaps/{name}")
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return None
+            log.exception("Failed to get ConfigMap %s/%s", namespace, name)
+            return None
+        except Exception:
+            log.exception("Failed to get ConfigMap %s/%s", namespace, name)
+            return None
+
+    async def create_configmap(self, namespace: str, name: str, data: dict, labels: dict) -> dict | None:
+        client = self._get_client()
+        if not client:
+            return None
+        try:
+            body = {
+                "apiVersion": "v1",
+                "kind": "ConfigMap",
+                "metadata": {"name": name, "labels": labels},
+                "data": data,
+            }
+            resp = await client.post(
+                f"/api/v1/namespaces/{namespace}/configmaps",
+                json=body,
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except Exception:
+            log.exception("Failed to create ConfigMap %s/%s", namespace, name)
+            return None
+
+    async def update_configmap(self, namespace: str, name: str, data: dict, labels: dict) -> dict | None:
+        client = self._get_client()
+        if not client:
+            return None
+        try:
+            body = {
+                "apiVersion": "v1",
+                "kind": "ConfigMap",
+                "metadata": {"name": name, "labels": labels},
+                "data": data,
+            }
+            resp = await client.put(
+                f"/api/v1/namespaces/{namespace}/configmaps/{name}",
+                json=body,
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except Exception:
+            log.exception("Failed to update ConfigMap %s/%s", namespace, name)
+            return None
+
+    async def delete_configmap(self, namespace: str, name: str) -> bool:
+        client = self._get_client()
+        if not client:
+            return False
+        try:
+            resp = await client.delete(f"/api/v1/namespaces/{namespace}/configmaps/{name}")
+            resp.raise_for_status()
+            return True
+        except Exception:
+            log.exception("Failed to delete ConfigMap %s/%s", namespace, name)
+            return False
+
     async def close(self):
         if self._client:
             await self._client.aclose()

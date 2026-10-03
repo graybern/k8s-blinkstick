@@ -3,6 +3,10 @@ import logging
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from fastapi.responses import PlainTextResponse
+
+import yaml
+
 from controller.api.models import (
     LEDCommand,
     ModeSwitch,
@@ -12,7 +16,15 @@ from controller.api.models import (
     AgentInfo,
     LEDState,
     StatusResponse,
+    SongSummary,
+    SongDetail,
+    SongCreate,
+    BeatSheet,
+    PlaybackState,
+    PresetInfo,
+    PresetPlayRequest,
 )
+from controller.engine.presets import PRESETS
 
 log = logging.getLogger(__name__)
 
@@ -143,6 +155,127 @@ async def get_nodes(request: Request) -> list[AgentInfo]:
             leds=info.get("leds", 0),
             online=info.get("online", False),
             last_seen=info.get("last_seen"),
+            clock_skew_ms=mqtt.get_clock_skew(name),
         )
         for name, info in sorted(registry.items())
     ]
+
+
+# ── Songs (order matters: fixed paths before {name}) ──
+
+@router.get("/songs")
+async def list_songs(request: Request) -> list[SongSummary]:
+    store = request.app.state.song_store
+    return [SongSummary(**s) for s in store.list_songs()]
+
+
+@router.post("/songs")
+async def create_song(request: Request, body: SongCreate) -> dict:
+    store = request.app.state.song_store
+    if body.beat_sheet:
+        sheet = body.beat_sheet
+    else:
+        try:
+            parsed = yaml.safe_load(body.yaml_content)
+            sheet = BeatSheet(**parsed)
+        except Exception as e:
+            return JSONResponse(status_code=400, content={"error": f"Invalid YAML: {e}"})
+    engine = request.app.state.engine
+    ok = engine.run_coroutine(store.save_song(sheet))
+    if ok:
+        return {"saved": sheet.metadata.name}
+    return JSONResponse(status_code=500, content={"error": "Failed to save"})
+
+
+@router.post("/songs/stop")
+async def stop_song(request: Request) -> dict:
+    engine = request.app.state.engine
+    music = engine.get_music_mode()
+    if not music or not music._playing:
+        return {"status": "not playing"}
+    result = engine.run_coroutine(music.stop_playback())
+    on_end = result.get("on_end", "status") if result else "status"
+    engine.run_coroutine(engine.set_mode(on_end))
+    return result or {"stopped": True}
+
+
+@router.get("/songs/playing")
+async def playing_status(request: Request) -> PlaybackState:
+    engine = request.app.state.engine
+    music = engine.get_music_mode()
+    if music:
+        return music.get_playback_state()
+    return PlaybackState()
+
+
+@router.get("/songs/{name}")
+async def get_song(request: Request, name: str) -> SongDetail | dict:
+    store = request.app.state.song_store
+    sheet = store.get_song(name)
+    if not sheet:
+        return JSONResponse(status_code=404, content={"error": f"Song not found: {name}"})
+    return SongDetail(
+        name=sheet.metadata.name,
+        title=sheet.metadata.title,
+        author=sheet.metadata.author,
+        bpm=sheet.timing.bpm,
+        loop=sheet.timing.loop,
+        source=store.get_source(name) or "unknown",
+        beat_sheet=sheet,
+    )
+
+
+@router.delete("/songs/{name}")
+async def delete_song(request: Request, name: str) -> dict:
+    store = request.app.state.song_store
+    engine = request.app.state.engine
+    ok = engine.run_coroutine(store.delete_song(name))
+    if ok:
+        return {"deleted": name}
+    return JSONResponse(status_code=404, content={"error": f"Song not found: {name}"})
+
+
+@router.post("/songs/{name}/play")
+async def play_song(request: Request, name: str) -> dict:
+    engine = request.app.state.engine
+    if engine.active_mode != "music":
+        engine.run_coroutine(engine.set_mode("music"))
+    music = engine.get_music_mode()
+    if not music:
+        return JSONResponse(status_code=500, content={"error": "Music mode not available"})
+    result = engine.run_coroutine(music.play_song(name))
+    if result and "error" in result:
+        return JSONResponse(status_code=400, content=result)
+    return result or {}
+
+
+@router.get("/songs/{name}/export")
+async def export_song(request: Request, name: str):
+    store = request.app.state.song_store
+    yaml_str = store.export_yaml(name)
+    if not yaml_str:
+        return JSONResponse(status_code=404, content={"error": f"Song not found: {name}"})
+    return PlainTextResponse(content=yaml_str, media_type="text/yaml")
+
+
+# ── Presets ──
+
+@router.get("/presets")
+async def list_presets(request: Request) -> list[PresetInfo]:
+    return [PresetInfo(name=k, **v) for k, v in PRESETS.items()]
+
+
+@router.post("/presets/{name}/play")
+async def play_preset(request: Request, name: str, body: PresetPlayRequest = PresetPlayRequest()) -> dict:
+    if name not in PRESETS:
+        return JSONResponse(status_code=404, content={"error": f"Unknown preset: {name}"})
+    engine = request.app.state.engine
+    if engine.active_mode != "music":
+        engine.run_coroutine(engine.set_mode("music"))
+    music = engine.get_music_mode()
+    if not music:
+        return JSONResponse(status_code=500, content={"error": "Music mode not available"})
+    result = engine.run_coroutine(music.play_preset(name, body.bpm, body.color, body.color2))
+    if result and "error" in result:
+        return JSONResponse(status_code=400, content=result)
+    return result or {}

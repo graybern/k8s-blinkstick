@@ -4,7 +4,9 @@ import threading
 
 from controller.services.mqtt_client import MQTTClient
 from controller.services.prometheus import PrometheusClient
+from controller.services.song_store import SongStore
 from controller.engine.status_mode import StatusMode
+from controller.engine.music_mode import MusicMode
 
 log = logging.getLogger(__name__)
 
@@ -29,11 +31,12 @@ class DirectMode:
 
 
 class ModeEngine:
-    def __init__(self, mqtt_client: MQTTClient, prometheus: PrometheusClient):
+    def __init__(self, mqtt_client: MQTTClient, prometheus: PrometheusClient, song_store: SongStore | None = None):
         self._mqtt = mqtt_client
         self._prometheus = prometheus
+        self._song_store = song_store
         self._background_mode: StatusMode | None = None
-        self._foreground_mode: DirectMode | None = None
+        self._foreground_mode = None
         self._active_mode_name = ""
         self._last_published: dict[str, dict] = {}
         self._tick_task: asyncio.Task | None = None
@@ -56,6 +59,7 @@ class ModeEngine:
         return [
             {"name": "status", "layer": "background", "led_strategy": "unified"},
             {"name": "direct", "layer": "foreground", "led_strategy": "unified"},
+            {"name": "music", "layer": "foreground", "led_strategy": "unified"},
         ]
 
     def get_last_published(self) -> dict[str, dict]:
@@ -63,6 +67,11 @@ class ModeEngine:
 
     def get_status_mode(self) -> StatusMode | None:
         return self._background_mode
+
+    def get_music_mode(self) -> MusicMode | None:
+        if isinstance(self._foreground_mode, MusicMode):
+            return self._foreground_mode
+        return None
 
     async def start(self, default_mode: str = "status"):
         await self.set_mode(default_mode)
@@ -98,6 +107,9 @@ class ModeEngine:
             await self._background_mode.start()
         elif name == "direct":
             self._foreground_mode = DirectMode()
+            await self._foreground_mode.start()
+        elif name == "music":
+            self._foreground_mode = MusicMode(self._mqtt, self._song_store)
             await self._foreground_mode.start()
         else:
             log.warning("Unknown mode: %s", name)
