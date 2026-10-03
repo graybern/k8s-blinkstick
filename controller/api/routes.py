@@ -1,9 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
-
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 import yaml
 

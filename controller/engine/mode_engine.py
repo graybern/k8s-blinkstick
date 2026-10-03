@@ -42,9 +42,15 @@ class ModeEngine:
         self._tick_task: asyncio.Task | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self._stop_event = threading.Event()
+        self._broadcast_fn = None
+        self._main_loop = None
 
     def set_loop(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
+
+    def set_broadcast(self, broadcast_fn, main_loop):
+        self._broadcast_fn = broadcast_fn
+        self._main_loop = main_loop
 
     def request_stop(self):
         self._stop_event.set()
@@ -191,6 +197,39 @@ class ModeEngine:
             clean = dict(cmd)
             clean.pop("_severity", None)
             self._last_published[node] = clean
+
+        self._do_broadcast()
+
+    def _do_broadcast(self):
+        if not self._broadcast_fn or not self._main_loop:
+            return
+        registry = self._mqtt.get_node_registry()
+        nodes = []
+        for name, info in sorted(registry.items()):
+            leds = []
+            published = self._last_published.get(name, {})
+            for led in published.get("leds", []):
+                leds.append({"index": led["index"], "r": led["r"], "g": led["g"], "b": led["b"]})
+            health = None
+            if self._background_mode:
+                h = self._background_mode.get_node_health().get(name)
+                if h:
+                    sev, color, effect, params = self._background_mode._compute_state(name, h)
+                    health = {"severity": sev, "cpu": h.get("cpu", 0), "memory": h.get("memory", 0), "disk": h.get("disk", 0)}
+            nodes.append({
+                "name": name, "online": info.get("online", False),
+                "present": info.get("present", False), "leds": leds, "health": health,
+            })
+        playback = None
+        music = self.get_music_mode()
+        if music:
+            ps = music.get_playback_state()
+            playback = {"playing": ps.playing, "song": ps.song, "beat_index": ps.beat_index, "total_beats": ps.total_beats, "elapsed": ps.elapsed}
+        data = {"nodes": nodes, "mode": self._active_mode_name, "playback": playback}
+        try:
+            asyncio.run_coroutine_threadsafe(self._broadcast_fn(data), self._main_loop)
+        except Exception:
+            pass
 
     def _commands_equal(self, a: dict, b: dict) -> bool:
         return (
