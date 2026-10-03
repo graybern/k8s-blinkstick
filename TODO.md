@@ -88,23 +88,23 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ---
 
-## Phase 3: Web UI + Music Mode
+## Phase 3: Web UI + Music Mode ✅ CURRENT
 
 **Goal:** Full web interface, beat sheet library, GitOps config pipeline.
 
 ### This repo
-- [ ] Beat sheet format with sections/repeats (define in CLAUDE.md)
-- [ ] `controller/engine/music_mode.py` — Pre-load full timetable to agents, NTP clock sync check
-- [ ] Built-in preset patterns (chase, alternate, rainbow, flash, police) — zero-YAML quick start
-- [ ] `controller/api/routes.py` — Song CRUD, presets, template routes, WebSocket /ws/live
-- [ ] `controller/api/models.py` — BeatSheet Pydantic validation model
-- [ ] `controller/services/k8s.py` — ConfigMap CRUD + polling watcher + immediate startup load
-- [ ] `controller/engine/mode_engine.py` — Register music mode
-- [ ] `controller/main.py` — Mount static files, Jinja2 templates
-- [ ] `controller/templates/` — base, dashboard, music, modes, direct, settings (dark mode, 800x480+desktop)
-- [ ] `web/static/` — CSS, JS, htmx.min.js
-- [ ] Agent: `play_sequence` action (full timetable, NTP tick), `stop_sequence`, `time_check`
-- [ ] `Dockerfile.controller` — Add pyyaml, COPY web/
+- [x] Beat sheet format with sections/repeats (BeatSheet Pydantic model with validation)
+- [x] `controller/engine/music_mode.py` — Pre-load full timetable to agents, NTP clock sync check
+- [x] Built-in preset patterns (chase, alternate, rainbow, flash, police) — zero-YAML quick start
+- [x] `controller/api/routes.py` — Song CRUD, presets, template routes, WebSocket /ws/live
+- [x] `controller/api/models.py` — BeatSheet Pydantic validation model
+- [x] `controller/services/k8s.py` — ConfigMap CRUD + polling watcher + immediate startup load
+- [x] `controller/engine/mode_engine.py` — Register music mode + WebSocket broadcast
+- [x] `controller/main.py` — Mount static files, Jinja2 templates, WebSocket endpoint
+- [x] `controller/templates/` — base, dashboard, music, modes, direct, settings (5 themes, 800x480+desktop)
+- [x] `web/static/` — CSS (5 themes, Playwright-audited), JS (WebSocket + LED rendering), htmx 2.0.4, self-hosted JetBrains Mono
+- [x] Agent: `play_sequence` action (full timetable, NTP tick), `stop_sequence`, `time_check`
+- [x] `Dockerfile.controller` — Add pyyaml, COPY web/
 
 ### Octolet repo
 - [ ] `songs/jingle-bells.yaml` — First beat sheet (with timing.loop, on_end, sections)
