@@ -48,7 +48,7 @@ class MusicMode:
         elapsed = 0.0
         if self._playing and self._started_at:
             elapsed = time.time() - self._started_at
-            beat_index = min(int(elapsed / (self._beat_ms / 1000)), self._beat_count - 1)
+            beat_index = max(0, min(int(elapsed / (self._beat_ms / 1000)), self._beat_count - 1))
         return PlaybackState(
             playing=self._playing,
             song=self._current_song,

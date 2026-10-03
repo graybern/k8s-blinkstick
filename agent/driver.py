@@ -162,8 +162,6 @@ class BlinkStickDriver:
             beat = beats[beat_index]
             try:
                 leds = beat.get("leds", [])
-                effect = beat.get("effect", "solid")
-                params = beat.get("params", {})
                 for led in leds:
                     self._stick.set_color(
                         channel=0,
