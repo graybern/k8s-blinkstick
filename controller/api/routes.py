@@ -305,6 +305,13 @@ async def all_off(request: Request) -> dict:
     mqtt = request.app.state.mqtt_client
     engine.run_coroutine(engine.set_mode("direct"))
     mqtt.publish_to_all({"action": "off"})
+    for node in mqtt.get_active_nodes():
+        led_count = mqtt.get_node_led_count(node)
+        engine._last_published[node] = {
+            "leds": [{"index": i, "r": 0, "g": 0, "b": 0} for i in range(led_count)],
+            "effect": "off",
+            "params": {},
+        }
     return {"status": "off sent to all", "mode": "direct"}
 
 
