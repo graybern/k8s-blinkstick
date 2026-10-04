@@ -274,6 +274,7 @@ The dashboard renders alert banners when nodes exceed health thresholds. Warning
 | GET | `/api/v1/modes/active` | Current mode |
 | POST | `/api/v1/modes/active` | Switch mode |
 | POST | `/api/v1/direct` | Send LED command (direct mode only, else 409) |
+| POST | `/api/v1/off` | All LEDs off (global override, any mode) |
 | GET | `/api/v1/nodes` | Discovered node registry with clock skew |
 | GET | `/api/v1/songs` | List songs from ConfigMap store |
 | POST | `/api/v1/songs` | Upload song (YAML or JSON body) |
@@ -388,6 +389,7 @@ All dependencies are pinned to exact versions tested on cluster hardware:
 | jinja2 | 3.1.6 |
 | pyyaml | 6.0.2 |
 | prometheus_client | 0.21.1 |
+| websockets | 14.2 |
 
 ## Roadmap
 

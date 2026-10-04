@@ -171,6 +171,14 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] Removed htmx.min.js (50KB unused)
 - [x] Added POST /api/v1/clock/check endpoint
 
+### Bug fixes from Playwright interactive audit (2026-10-04)
+- [x] WebSocket 404: added `websockets` pip package (lost when uvicorn[standard] removed)
+- [x] Clock sync: /status now includes clock_skew_ms in device field
+- [x] All-off: POST /api/v1/off bypasses mode checks (global override)
+- [x] Direct Apply: auto-switches to direct mode before sending
+- [x] Git songs: DELETE returns 403 for source=git
+- [x] Error toasts: API errors show red banner with auto-dismiss
+
 ---
 
 ## Phase 4b: Event Overlays + Creative Modes
