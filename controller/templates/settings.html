@@ -2,21 +2,59 @@
 {% set page = "settings" %}
 {% block title %}Settings — BlinkStick{% endblock %}
 {% block content %}
+<h2>Controller</h2>
+<div class="info-grid" id="controller-info"><div class="empty-state">Loading...</div></div>
+
+<h2>MQTT Inspector</h2>
+<div class="action-bar" style="padding:0 0 8px">
+  <button class="btn" id="mqtt-toggle" onclick="toggleMqttLive()">Pause</button>
+  <span style="font-size:10px;color:var(--muted)" id="mqtt-count">0 messages</span>
+</div>
+<div class="mqtt-inspector" id="mqtt-log"><div class="empty-state">Loading...</div></div>
+
+<h2>Event History</h2>
+<div class="filter-chips" id="event-filters">
+  <button class="chip active" onclick="filterEvents(null, this)">all</button>
+  <button class="chip" onclick="filterEvents('mqtt_pub', this)">commands</button>
+  <button class="chip" onclick="filterEvents('mode_switch', this)">modes</button>
+  <button class="chip" onclick="filterEvents('alert', this)">alerts</button>
+</div>
+<div class="event-list" id="event-history" style="max-height:240px"><div class="empty-state">Loading...</div></div>
+<div class="action-bar"><button class="btn" onclick="exportEvents()">Export JSON</button></div>
+
 <h2>Clock Sync</h2>
 <div id="clock-sync"><div class="empty-state">Loading...</div></div>
-<div class="action-bar">
-  <button class="btn" onclick="checkClock()">Check clock sync</button>
-</div>
-
-<h2>System Info</h2>
-<div id="system-info"><div class="empty-state">Loading...</div></div>
+<div class="action-bar"><button class="btn" onclick="triggerClockCheck()">Check clock sync</button></div>
 {% endblock %}
 {% block scripts %}
 <script>
+let _mqttLive = true;
+let _allEvents = [];
+
 async function loadSettings() {
+  // Controller info
   const nodes = await apiGet('/nodes');
-  const el = document.getElementById('clock-sync');
-  el.innerHTML = '<div class="node-table-wrap"><div class="node-header" style="grid-template-columns:1fr 80px 80px 100px;min-width:400px"><span>node</span><span>online</span><span>clock</span><span>last seen</span></div><div class="node-list" style="min-width:400px">' +
+  const status = await apiGet('/status');
+  const infoEl = document.getElementById('controller-info');
+  const online = nodes.filter(n => n.online).length;
+  const present = nodes.filter(n => n.present).length;
+  infoEl.innerHTML = `
+    <div class="info-card"><div class="info-label">mode</div><div class="info-val">${status.active_mode}</div></div>
+    <div class="info-card"><div class="info-label">agents</div><div class="info-val">${nodes.length} discovered</div></div>
+    <div class="info-card"><div class="info-label">online</div><div class="info-val" style="color:var(--accent)">${online}</div></div>
+    <div class="info-card"><div class="info-label">devices</div><div class="info-val">${present} with BlinkStick</div></div>
+    <div class="info-card"><div class="info-label">mqtt</div><div class="info-val" style="color:var(--accent)">connected</div></div>
+    <div class="info-card"><div class="info-label">metrics</div><div class="info-val"><a href="/api/v1/metrics" style="color:var(--accent)">/metrics</a></div></div>`;
+
+  // MQTT inspector
+  await loadMqtt();
+
+  // Events
+  await loadEvents();
+
+  // Clock sync
+  const clockEl = document.getElementById('clock-sync');
+  clockEl.innerHTML = '<div class="node-table-wrap"><div class="node-list" style="min-width:auto">' +
     nodes.map(n => {
       const skew = n.clock_skew_ms != null ? `${Math.round(n.clock_skew_ms)}ms` : '--';
       const skewClass = n.clock_skew_ms > 200 ? ' hot' : '';
@@ -28,19 +66,64 @@ async function loadSettings() {
         <div class="val">${seen}</div>
       </div>`;
     }).join('') + '</div></div>';
+}
 
-  const sysEl = document.getElementById('system-info');
-  const status = await apiGet('/status');
-  sysEl.innerHTML = `
-    <div class="song-item"><span class="song-name">Mode</span><span class="song-meta">${status.active_mode}</span></div>
-    <div class="song-item"><span class="song-name">Agents</span><span class="song-meta">${nodes.length} discovered</span></div>
-    <div class="song-item"><span class="song-name">Active</span><span class="song-meta">${nodes.filter(n=>n.online).length} online</span></div>
-    <div class="song-item"><span class="song-name">Devices</span><span class="song-meta">${nodes.filter(n=>n.present).length} with BlinkStick</span></div>`;
+async function loadMqtt() {
+  if (!_mqttLive) return;
+  const msgs = await apiGet('/mqtt/messages?limit=30');
+  const el = document.getElementById('mqtt-log');
+  document.getElementById('mqtt-count').textContent = `${msgs.length} messages`;
+  if (!msgs.length) { el.innerHTML = '<div class="empty-state">No messages yet</div>'; return; }
+  el.innerHTML = msgs.map(m => {
+    const t = new Date(m.time * 1000);
+    const ts = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`;
+    const dir = m.direction === 'pub' ? 'out' : 'in';
+    const arrow = m.direction === 'pub' ? '→' : '←';
+    return `<div class="mqtt-msg"><div class="mqtt-time">${ts}</div><div class="mqtt-dir ${dir}">${arrow}</div><div class="mqtt-body"><div class="mqtt-topic">${m.topic}</div><div class="mqtt-payload" onclick="this.classList.toggle('expanded')">${m.payload}</div></div></div>`;
+  }).join('');
 }
-async function checkClock() {
+
+function toggleMqttLive() {
+  _mqttLive = !_mqttLive;
+  document.getElementById('mqtt-toggle').textContent = _mqttLive ? 'Pause' : 'Resume';
+}
+
+async function loadEvents(typeFilter) {
+  const url = typeFilter ? `/events?limit=50&type=${typeFilter}` : '/events?limit=50';
+  _allEvents = await apiGet(url);
+  const el = document.getElementById('event-history');
+  if (!_allEvents.length) { el.innerHTML = '<div class="empty-state">No events</div>'; return; }
+  el.innerHTML = _allEvents.map(e => {
+    const t = new Date(e.time * 1000);
+    const ts = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`;
+    const cls = e.type.includes('pub') ? 'pub' : e.type.includes('mode') ? 'mode' : e.type.includes('alert') ? 'alert' : 'sub';
+    const icon = e.type.includes('pub') ? '→' : e.type.includes('mode') ? '⟳' : e.type.includes('alert') ? '!' : '←';
+    return `<div class="event-item"><div class="event-time">${ts}</div><div class="event-arrow ${cls}">${icon}</div><div class="event-detail">${e.detail}</div><div class="event-target">${e.target || ''}</div></div>`;
+  }).join('');
+}
+
+function filterEvents(type, btn) {
+  document.querySelectorAll('#event-filters .chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  loadEvents(type);
+}
+
+function exportEvents() {
+  const blob = new Blob([JSON.stringify(_allEvents, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'blinkstick-events.json';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+async function triggerClockCheck() {
   await apiPost('/songs/stop').catch(() => {});
-  setTimeout(loadSettings, 3000);
+  await new Promise(r => setTimeout(r, 3000));
+  loadSettings();
 }
-document.addEventListener('DOMContentLoaded', loadSettings);
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  setInterval(loadMqtt, 2000);
+});
 </script>
 {% endblock %}

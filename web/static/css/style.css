@@ -290,3 +290,48 @@ label { font-size: 11px; color: var(--dim); display: block; margin-bottom: 4px; 
 .mode-card.active { border-color: var(--accent); background: var(--accent-dim); }
 .mode-card .mode-name { font-weight: 600; font-size: 14px; }
 .mode-card .mode-layer { font-size: 11px; color: var(--dim); margin-top: 2px; }
+
+/* ── Event log ── */
+.event-log { padding: 0 0 12px; }
+.event-list { display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; }
+.event-item { display: grid; grid-template-columns: 70px 20px 1fr auto; gap: 8px; padding: 6px 10px; font-size: 11px; border-radius: 3px; align-items: center; background: var(--surface); }
+.event-item:hover { background: var(--raised); }
+.event-time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.event-arrow { text-align: center; font-weight: 600; }
+.event-arrow.pub { color: var(--accent); }
+.event-arrow.sub { color: var(--offline); }
+.event-arrow.mode { color: var(--warning); }
+.event-arrow.alert { color: var(--danger); }
+.event-detail { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.event-target { color: var(--muted); font-size: 10px; text-align: right; }
+
+/* ── Filter chips ── */
+.filter-chips { display: flex; gap: 4px; padding: 0 0 8px; flex-wrap: wrap; }
+.chip {
+  padding: 8px 14px; font-size: 10px; border-radius: 12px;
+  border: 1px solid var(--border); color: var(--dim); cursor: pointer;
+  transition: all 80ms; background: none; font-family: var(--font); min-height: 44px;
+  display: flex; align-items: center;
+}
+.chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.chip:hover { border-color: var(--accent); }
+
+/* ── MQTT Inspector ── */
+.mqtt-inspector { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; max-height: 300px; overflow-y: auto; font-size: 11px; }
+.mqtt-msg { display: grid; grid-template-columns: 60px 18px 1fr; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--border); align-items: start; }
+.mqtt-msg:last-child { border-bottom: none; }
+.mqtt-time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 10px; }
+.mqtt-dir { font-size: 12px; font-weight: 600; }
+.mqtt-dir.out { color: var(--accent); }
+.mqtt-dir.in { color: var(--offline); }
+.mqtt-body { min-width: 0; }
+.mqtt-topic { color: var(--dim); font-weight: 500; }
+.mqtt-payload { color: var(--muted); font-size: 10px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.mqtt-payload.expanded { white-space: pre-wrap; word-break: break-all; }
+
+/* ── Controller Info ── */
+.info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (max-width: 480px) { .info-grid { grid-template-columns: 1fr; } }
+.info-card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 10px 14px; }
+.info-label { font-size: 10px; color: var(--dim); letter-spacing: 0.04em; margin-bottom: 2px; }
+.info-val { font-size: 13px; font-weight: 500; }
