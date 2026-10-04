@@ -27,16 +27,6 @@ logging.basicConfig(
 log = logging.getLogger("controller")
 
 app = FastAPI(title="BlinkStick Controller")
-app.include_router(router)
-app.include_router(web_router)
-
-static_dir = os.path.join(os.path.dirname(__file__), "..", "web", "static")
-if os.path.isdir(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-templates_dir = os.path.join(os.path.dirname(__file__), "templates")
-if os.path.isdir(templates_dir):
-    app.state.templates = Jinja2Templates(directory=templates_dir)
 
 ws_manager = ConnectionManager()
 app.state.ws_manager = ws_manager
@@ -57,6 +47,18 @@ async def ws_live(websocket: WebSocket):
         await ws_manager.disconnect(websocket)
     except Exception:
         await ws_manager.disconnect(websocket)
+
+
+app.include_router(router)
+app.include_router(web_router)
+
+static_dir = os.path.join(os.path.dirname(__file__), "..", "web", "static")
+if os.path.isdir(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+if os.path.isdir(templates_dir):
+    app.state.templates = Jinja2Templates(directory=templates_dir)
 
 
 @app.get("/healthz")
