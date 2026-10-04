@@ -29,6 +29,7 @@
 {% block scripts %}
 <script>
 let _mqttLive = true;
+let _mqttInterval = null;
 let _allEvents = [];
 
 async function loadSettings() {
@@ -86,6 +87,11 @@ async function loadMqtt() {
 function toggleMqttLive() {
   _mqttLive = !_mqttLive;
   document.getElementById('mqtt-toggle').textContent = _mqttLive ? 'Pause' : 'Resume';
+  if (_mqttLive) {
+    if (!_mqttInterval) _mqttInterval = setInterval(loadMqtt, 2000);
+  } else {
+    if (_mqttInterval) { clearInterval(_mqttInterval); _mqttInterval = null; }
+  }
 }
 
 async function loadEvents(typeFilter) {
@@ -116,14 +122,14 @@ function exportEvents() {
 }
 
 async function triggerClockCheck() {
-  await apiPost('/songs/stop').catch(() => {});
+  await apiPost('/clock/check').catch(() => {});
   await new Promise(r => setTimeout(r, 3000));
   loadSettings();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSettings();
-  setInterval(loadMqtt, 2000);
+  _mqttInterval = setInterval(loadMqtt, 2000);
 });
 </script>
 {% endblock %}

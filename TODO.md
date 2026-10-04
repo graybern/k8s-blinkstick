@@ -196,15 +196,15 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] Replace prompt()/alert() with inline inputs + showToast()
 - [x] Add js-yaml CDN or rename Export to JSON
 
-### Commit 3 — Error handling + Settings (P1)
-- [ ] apiGet error handling + toast
-- [ ] Settings MQTT setInterval cleared on Pause/Resume
-- [ ] settings.html triggerClockCheck fix (still calls /songs/stop)
-- [ ] WS onmessage log parse errors
-- [ ] Polling fallback error feedback
-- [ ] Poll events on tick (not just /status)
-- [ ] initGlobal error state with retry
-- [ ] Song delete confirmation dialog
+### Commit 3 — Error handling + Settings (P1) ✅
+- [x] apiGet error handling + toast
+- [x] Settings MQTT setInterval cleared on Pause/Resume
+- [x] settings.html triggerClockCheck fix (still calls /songs/stop)
+- [x] WS onmessage log parse errors
+- [x] Polling fallback error feedback
+- [x] Poll events on tick (not just /status)
+- [x] initGlobal error state with retry
+- [x] Song delete confirmation dialog
 
 ### Commit 4 — Accessibility + Contrast (P2)
 - [ ] WCAG contrast: terminal --muted, midnight --muted, dark --dim

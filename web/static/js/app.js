@@ -7,11 +7,18 @@ let _lastStatusData = null;
 let _wsConnected = false;
 let _wsFails = 0;
 let _pollInterval = null;
+let _lastEventFetch = 0;
 const _dismissedAlerts = new Set();
 
 // ── API helpers ──
 
-async function apiGet(path) { return (await fetch(`${API}${path}`)).json(); }
+async function apiGet(path) {
+  try {
+    const resp = await fetch(`${API}${path}`);
+    if (!resp.ok) { showToast(`Error ${resp.status}: ${path}`, 'error'); return null; }
+    return await resp.json();
+  } catch { showToast(`Network error: ${path}`, 'error'); return null; }
+}
 async function apiPost(path, body) {
   const resp = await fetch(`${API}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
   const data = await resp.json();
@@ -72,7 +79,8 @@ class LiveSocket {
     };
     this.ws.onmessage = (e) => {
       if (e.data === 'pong') return;
-      try { const data = JSON.parse(e.data); _lastUpdate = Date.now(); this.callbacks.forEach(cb => cb(data)); } catch {}
+      try { const data = JSON.parse(e.data); _lastUpdate = Date.now(); this.callbacks.forEach(cb => cb(data)); }
+      catch (err) { console.warn('WS parse error:', err.message); }
     };
     this.ws.onclose = () => { this._onFail(); };
     this.ws.onerror = () => {};
@@ -109,10 +117,11 @@ function startPolling() {
   _pollInterval = setInterval(async () => {
     try {
       const data = await apiGet('/status');
+      if (!data) return;
       _lastUpdate = Date.now();
       _lastStatusData = data;
       updateAllViews(data);
-    } catch {}
+    } catch (err) { console.warn('Poll error:', err.message); }
   }, 3000);
 }
 
@@ -139,6 +148,12 @@ function updateAllViews(data) {
     updateDirectColors(data.nodes);
   }
   if (data.playback !== undefined) renderNowPlaying(document.getElementById('now-playing'), data.playback);
+
+  const eventsEl = document.getElementById('events');
+  if (eventsEl && Date.now() - _lastEventFetch > 3000) {
+    _lastEventFetch = Date.now();
+    apiGet('/events?limit=10').then(events => { if (events) renderEvents(eventsEl, events); });
+  }
 }
 
 // ── LED rendering (creates once, updates styles in place — no animation snap) ──
@@ -696,11 +711,15 @@ async function initDashboard() {
 async function initGlobal() {
   try {
     const data = await apiGet('/status');
+    if (!data) throw new Error('No data');
     _lastStatusData = data;
     _lastUpdate = Date.now();
     renderLEDStrip(document.getElementById('led-strip'), data.nodes);
     renderAlerts(document.getElementById('alerts'), data.nodes);
-  } catch {}
+  } catch {
+    const strip = document.getElementById('led-strip');
+    if (strip) strip.innerHTML = '<div class="empty-state">Connection lost <button class="btn" style="margin-left:8px" onclick="initGlobal()">Retry</button></div>';
+  }
 }
 
 // ── Boot ──

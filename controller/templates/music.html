@@ -96,10 +96,16 @@ async function loadSongs() {
       <span class="song-meta">${s.bpm} bpm · ${s.source}</span>
       <button class="btn" onclick="Editor.loadSong('${s.name}')">Edit</button>
       <button class="btn" onclick="apiPost('/songs/${s.name}/play')">Play</button>
-      <button class="btn danger" onclick="deleteSong('${s.name}')">Delete</button>
+      <button class="btn danger" onclick="deleteSong('${s.name}', this)">Delete</button>
     </div>`).join('');
 }
-async function deleteSong(name) {
+async function deleteSong(name, btn) {
+  if (!btn.dataset.confirmed) {
+    btn.textContent = 'Confirm?';
+    btn.dataset.confirmed = '1';
+    setTimeout(() => { btn.textContent = 'Delete'; delete btn.dataset.confirmed; }, 3000);
+    return;
+  }
   await apiDelete(`/songs/${name}`);
   loadSongs();
 }
