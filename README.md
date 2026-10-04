@@ -136,12 +136,22 @@ Five patterns available instantly, no YAML required:
 
 Play via API: `POST /api/v1/presets/{name}/play` with optional `bpm`, `color`, `color2` in the body.
 
+### Beat Sheet Editor
+
+The Music page includes a visual step sequencer for creating and editing beat sheets:
+
+- **Visual mode**: nodes as columns, beats as rows. Click LED cells with a palette brush to paint colors. Add, delete, and duplicate beats. Section markers with named groups. Repeat and hold indicators.
+- **Code mode**: raw YAML editor with syntax validation. Toggle between Visual ↔ Code — changes sync both ways.
+- **Preview**: plays the pattern on real hardware via the API.
+- **Save**: stores to Kubernetes ConfigMap via the song API.
+- **Export**: downloads as a `.yaml` file.
+
 ### Song Management
 
 Songs are stored as Kubernetes ConfigMaps with the label `blinkstick.octolet.int/type: song`. The controller polls for changes every 30 seconds and loads new songs automatically.
 
 - **Git-synced**: add a ConfigMap to your manifests repo, ArgoCD deploys it
-- **Runtime uploads**: POST YAML to `/api/v1/songs`, stored as a ConfigMap labeled `source: runtime`
+- **Runtime uploads**: POST YAML to `/api/v1/songs` or use the visual editor, stored as a ConfigMap labeled `source: runtime`
 - **Export**: GET `/api/v1/songs/{name}/export` returns raw YAML
 
 ## Command Reference
@@ -225,6 +235,34 @@ When the controller runs in status mode, it polls Prometheus and maps cluster he
 
 The visualization is readable from across the room — color tells you *what*, effect tells you *how urgent*.
 
+## Observability
+
+The controller provides enterprise-grade visibility into every layer of the system.
+
+### Event Log
+
+Every MQTT publish, mode switch, playback action, and alert is recorded in an in-memory ring buffer (200 events). The dashboard shows the last 10 events in an activity feed, and the Settings page has a full event history with type filters (commands, modes, alerts) and JSON export.
+
+### MQTT Inspector
+
+The Settings page includes a live MQTT message inspector. The controller subscribes to `blinkstick/#` (wildcard) and stores the last 100 messages with direction (→ publish, ← subscribe), topic, and payload. Messages are expandable and the inspector has a live/pause toggle.
+
+### Prometheus Metrics
+
+The controller exposes metrics at `/api/v1/metrics` in Prometheus exposition format:
+
+- `blinkstick_mode_switches_total` — counter by from/to mode
+- `blinkstick_mqtt_messages_total` — counter by direction and topic
+- `blinkstick_commands_total` — counter by action and effect
+- `blinkstick_clock_skew_ms` — gauge per node
+- `blinkstick_nodes_online`, `blinkstick_nodes_present` — gauges
+- `blinkstick_engine_tick_duration_seconds` — histogram
+- `blinkstick_websocket_connections` — gauge
+
+### Dashboard Alerts
+
+The dashboard renders alert banners when nodes exceed health thresholds. Warning nodes show an amber banner with the specific metric; critical nodes show a red banner. Alerts are dismissible and a notification badge appears on the Settings nav link.
+
 ## REST API
 
 | Method | Path | Description |
@@ -247,6 +285,9 @@ The visualization is readable from across the room — color tells you *what*, e
 | GET | `/api/v1/songs/{name}/export` | Download raw YAML |
 | GET | `/api/v1/presets` | List built-in presets |
 | POST | `/api/v1/presets/{name}/play` | Play preset with optional bpm/color/color2 |
+| GET | `/api/v1/events` | Event log (optional `?type=` filter) |
+| GET | `/api/v1/mqtt/messages` | MQTT inspector (last 100 messages) |
+| GET | `/api/v1/metrics` | Prometheus metrics (exposition format) |
 | WS | `/ws/live` | Live state updates (max 10 connections, 10/sec) |
 
 ## Architecture
@@ -263,11 +304,13 @@ The visualization is readable from across the room — color tells you *what*, e
 ### Controller
 
 - FastAPI app with engine running in a separate daemon thread (own asyncio event loop)
-- Layered mode engine: background (status), event overlay (Phase 4), foreground (direct, music)
+- Layered mode engine: background (status), event overlay (Phase 4b), foreground (direct, music)
 - Dynamic node discovery from MQTT retained messages — no hardcoded node count
 - LED count per device read from agent state — works with Nano (2), Strip (8), or Pro (64)
 - Song store backed by Kubernetes ConfigMaps with 30s polling
 - WebSocket broadcast from engine tick loop via cross-thread dispatch
+- Event log (200-event ring buffer) and MQTT inspector (100-message buffer) for observability
+- Prometheus metrics at `/api/v1/metrics` for scraping
 - In-memory state only — defaults to status mode on restart (fail-safe)
 
 ### MQTT Delivery & Music Sync
@@ -296,14 +339,17 @@ controller/
     music_mode.py     # Beat sheet player, NTP sync, preset generator
     presets.py        # Built-in pattern generators (chase, rainbow, etc.)
   services/
-    mqtt_client.py    # MQTT publisher + state subscriber + clock sync
+    mqtt_client.py    # MQTT publisher + state subscriber + clock sync + inspector
     prometheus.py     # httpx → Prometheus API
     k8s.py            # K8s API client (SA token + httpx + ConfigMap CRUD)
     song_store.py     # ConfigMap-backed song cache with 30s polling
+    event_log.py      # In-memory event ring buffer (200 events)
+    metrics.py        # Prometheus metrics (counters, gauges, histograms)
   templates/          # Jinja2 templates (base, dashboard, music, modes, direct, settings)
 web/static/
   css/style.css       # 5-theme design system (Playwright-audited)
-  js/app.js           # WebSocket client, LED rendering, API helpers
+  js/app.js           # WebSocket client, LED rendering, alerts, events, API helpers
+  js/editor.js        # Beat sheet visual editor (step sequencer grid)
   js/htmx.min.js      # Self-hosted htmx 2.0.4
   fonts/              # Self-hosted JetBrains Mono woff2
 Dockerfile.agent      # Agent image (Alpine + blinkstick + pyusb)
@@ -341,6 +387,7 @@ All dependencies are pinned to exact versions tested on cluster hardware:
 | pydantic | 2.13.5 |
 | jinja2 | 3.1.6 |
 | pyyaml | 6.0.2 |
+| prometheus_client | 0.21.1 |
 
 ## Roadmap
 
@@ -349,7 +396,8 @@ See [TODO.md](TODO.md) for the full phased plan.
 - **Phase 1** — Agent + MQTT + Effects (complete)
 - **Phase 2** — Controller + Status Mode (complete)
 - **Phase 3** — Web UI + Music Mode (complete)
-- **Phase 4** — Event Overlays + Creative Modes (Twingate, ArgoCD, Knight Rider)
+- **Phase 4a** — Observability + Beat Sheet Editor (complete)
+- **Phase 4b** — Event Overlays + Creative Modes (Twingate, ArgoCD, Knight Rider)
 
 ## License
 
