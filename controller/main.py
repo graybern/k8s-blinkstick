@@ -35,7 +35,7 @@ app.state.ws_manager = ws_manager
 @app.websocket("/ws/live")
 async def ws_live(websocket: WebSocket):
     if hasattr(app.state, 'engine') and not app.state.engine._main_loop:
-        app.state.engine.set_broadcast(ws_manager.broadcast, asyncio.get_event_loop())
+        app.state.engine.set_broadcast(ws_manager.broadcast, asyncio.get_running_loop())
     if not await ws_manager.connect(websocket):
         return
     try:

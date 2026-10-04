@@ -301,9 +301,11 @@ async def get_mqtt_messages(request: Request, limit: int = 50) -> list[dict]:
 
 @router.post("/off")
 async def all_off(request: Request) -> dict:
+    engine = request.app.state.engine
     mqtt = request.app.state.mqtt_client
+    engine.run_coroutine(engine.set_mode("direct"))
     mqtt.publish_to_all({"action": "off"})
-    return {"status": "off sent to all"}
+    return {"status": "off sent to all", "mode": "direct"}
 
 
 @router.post("/clock/check")

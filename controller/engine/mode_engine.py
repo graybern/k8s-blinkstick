@@ -157,6 +157,7 @@ class ModeEngine:
                 registry = self._mqtt.get_node_registry()
                 metrics.set_nodes_online(sum(1 for v in registry.values() if v.get("online")))
                 metrics.set_nodes_present(sum(1 for v in registry.values() if v.get("present")))
+                self._do_broadcast()
                 await asyncio.sleep(1.0)
             except asyncio.CancelledError:
                 return
@@ -206,8 +207,6 @@ class ModeEngine:
             clean = dict(cmd)
             clean.pop("_severity", None)
             self._last_published[node] = clean
-
-        self._do_broadcast()
 
     def _do_broadcast(self):
         if not self._broadcast_fn or not self._main_loop:
