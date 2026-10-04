@@ -190,11 +190,11 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] toggleNodeDetail triggers immediate re-render
 - [x] Direct controls preserve user input between ticks
 
-### Commit 2 — Editor data integrity (P0+P1)
-- [ ] Fix grid editor save: write _expandedCache edits back to data.beats
-- [ ] Invalidate cache on addBeat/dupBeat/delBeat
-- [ ] Replace prompt()/alert() with inline inputs + showToast()
-- [ ] Add js-yaml CDN or rename Export to JSON
+### Commit 2 — Editor data integrity (P0+P1) ✅
+- [x] Fix grid editor save: write _expandedCache edits back to data.beats
+- [x] Invalidate cache on addBeat/dupBeat/delBeat
+- [x] Replace prompt()/alert() with inline inputs + showToast()
+- [x] Add js-yaml CDN or rename Export to JSON
 
 ### Commit 3 — Error handling + Settings (P1)
 - [ ] apiGet error handling + toast

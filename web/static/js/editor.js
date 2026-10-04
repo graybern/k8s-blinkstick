@@ -133,11 +133,30 @@ const Editor = {
   },
 
   addColor() {
-    const key = prompt('Palette key (single character):');
-    if (!key || key.length !== 1) return;
-    const color = prompt('Hex color (e.g. #FF8800):');
-    if (!color) return;
+    const container = document.getElementById('editor-palette');
+    if (!container || container.querySelector('.palette-form')) return;
+    const form = document.createElement('span');
+    form.className = 'palette-form';
+    form.style.cssText = 'display:inline-flex;gap:4px;align-items:center;margin-left:8px;vertical-align:top';
+    form.innerHTML = `
+      <input type="text" maxlength="1" placeholder="Key" style="width:44px;min-height:28px;padding:4px 8px;font-size:11px">
+      <input type="color" value="#FF8800" style="min-height:28px;min-width:28px;padding:2px">
+      <button class="btn" style="height:28px;font-size:10px" onclick="Editor.confirmAddColor()">Add</button>
+      <button class="btn" style="height:28px;font-size:10px" onclick="this.parentElement.remove()">×</button>`;
+    container.appendChild(form);
+    const textInput = form.querySelector('input[type="text"]');
+    textInput.focus();
+    textInput.addEventListener('keydown', e => { if (e.key === 'Enter') Editor.confirmAddColor(); });
+  },
+
+  confirmAddColor() {
+    const form = document.querySelector('.palette-form');
+    if (!form) return;
+    const key = form.querySelector('input[type="text"]').value.trim();
+    const color = form.querySelector('input[type="color"]').value;
+    if (!key || key.length !== 1) { showToast('Key must be a single character', 'error'); return; }
     this.data.palette[key] = color;
+    form.remove();
     this.renderPalette();
   },
 
@@ -168,11 +187,30 @@ const Editor = {
   },
 
   addSection() {
-    const name = prompt('Section name:');
-    if (!name) return;
+    const container = document.getElementById('editor-grid');
+    if (!container || container.querySelector('.section-form')) return;
+    const form = document.createElement('div');
+    form.className = 'section-form';
+    form.style.cssText = 'display:flex;gap:6px;align-items:center;padding:8px 0';
+    form.innerHTML = `
+      <input type="text" placeholder="Section name" style="width:160px;min-height:28px;padding:4px 8px;font-size:11px">
+      <button class="btn" style="height:28px;font-size:10px" onclick="Editor.confirmAddSection()">Add</button>
+      <button class="btn" style="height:28px;font-size:10px" onclick="this.parentElement.remove()">×</button>`;
+    container.appendChild(form);
+    const textInput = form.querySelector('input');
+    textInput.focus();
+    textInput.addEventListener('keydown', e => { if (e.key === 'Enter') Editor.confirmAddSection(); });
+  },
+
+  confirmAddSection() {
+    const form = document.querySelector('.section-form');
+    if (!form) return;
+    const name = form.querySelector('input').value.trim();
+    if (!name) { showToast('Section name required', 'error'); return; }
     const expanded = this._expandBeats();
     expanded.push({ type: 'section_start', name });
     expanded.push({ type: 'section_end' });
+    form.remove();
     this.renderGrid();
   },
 
@@ -222,6 +260,53 @@ const Editor = {
     return cells;
   },
 
+  _cellsToString(cells) {
+    if (!cells) return '';
+    const rev = {};
+    Object.entries(this.data.palette).forEach(([k, v]) => { rev[v.toUpperCase()] = k; });
+    let s = '';
+    cells.forEach(nodeLeds => {
+      (nodeLeds || []).forEach(color => {
+        s += rev[(color || '#000000').toUpperCase()] || '_';
+      });
+    });
+    return s;
+  },
+
+  _compactBeats() {
+    const expanded = this._expandBeats();
+    const beats = [];
+    const sections = {};
+    let sectionName = null;
+    let sectionBeats = [];
+
+    expanded.forEach(entry => {
+      if (entry.type === 'section_start') {
+        sectionName = entry.name;
+        sectionBeats = [];
+        return;
+      }
+      if (entry.type === 'section_end') {
+        if (sectionName) {
+          sections[sectionName] = sectionBeats;
+          beats.push({ section: sectionName });
+        }
+        sectionName = null;
+        return;
+      }
+
+      const str = this._cellsToString(entry.cells);
+      const item = entry.repeat ? { repeat: str, count: entry.repeat }
+                 : entry.hold ? { colors: str, hold: entry.hold }
+                 : str;
+
+      if (sectionName) sectionBeats.push(str);
+      else beats.push(item);
+    });
+
+    return { beats, sections };
+  },
+
   _invalidateCache() {
     this._expandedCache = null;
   },
@@ -230,6 +315,9 @@ const Editor = {
 
   toYaml() {
     const d = this.data;
+    const { beats, sections } = this._compactBeats();
+    d.beats = beats;
+    d.sections = sections;
     const sheet = {
       apiVersion: 'blinkstick.octolet.int/v1',
       kind: 'BeatSheet',
@@ -287,8 +375,8 @@ const Editor = {
     this.readMetadata();
     const yaml = this.toYaml();
     const result = await apiPost('/songs', { yaml_content: yaml });
-    if (result.error) alert(result.error);
-    else alert(`Saved: ${this.data.metadata.name}`);
+    if (result.error) showToast(result.error, 'error');
+    else showToast(`Saved: ${this.data.metadata.name}`);
   },
 
   exportYaml() {
@@ -327,7 +415,7 @@ const Editor = {
   },
 };
 
-// js-yaml not available in self-hosted, use JSON fallback
+// js-yaml loaded from CDN in music.html
 const jsyaml = window.jsyaml || null;
 
 function showVisual() {
