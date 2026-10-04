@@ -12,7 +12,6 @@
   <div class="action-sep"></div>
   <button class="btn danger" onclick="stopPlayback()">Stop</button>
 </div>
-
 <div class="form-row">
   <div class="form-group">
     <label for="preset-bpm">BPM</label>
@@ -33,50 +32,79 @@
 <h2>Song Library</h2>
 <div id="song-list"><div class="empty-state">Loading songs...</div></div>
 
-<h2>Upload Beat Sheet</h2>
-<form id="upload-form" onsubmit="return uploadSong(event)">
-  <textarea id="yaml-input" rows="12" placeholder="Paste YAML beat sheet here..."></textarea>
-  <div class="action-bar">
-    <button type="submit" class="btn primary">Upload</button>
+<h2>Beat Sheet Editor</h2>
+
+<div class="editor-tabs">
+  <button class="ed-tab active" onclick="showVisual()">Visual</button>
+  <button class="ed-tab" onclick="showCode()">Code</button>
+</div>
+
+<!-- Visual mode -->
+<div class="visual-pane active" id="visual-pane">
+  <div class="meta-row">
+    <div class="meta-field"><label>name</label><input id="meta-name" value="new-song"></div>
+    <div class="meta-field"><label>title</label><input id="meta-title" value=""></div>
+    <div class="meta-field"><label>author</label><input id="meta-author" value=""></div>
   </div>
-</form>
+  <div class="timing-row">
+    <div class="timing-field"><label>bpm</label><input type="number" id="timing-bpm" value="120" min="20" max="300"></div>
+    <div class="timing-field"><label>loop</label><select id="timing-loop"><option value="no">no</option><option value="yes">yes</option></select></div>
+    <div class="timing-field"><label>transition</label><select id="timing-transition"><option value="solid">solid</option><option value="morph">morph</option></select></div>
+    <div class="timing-field"><label>on end</label><select id="timing-onend"><option value="status">status</option><option value="direct">direct</option></select></div>
+  </div>
+
+  <div id="editor-palette"></div>
+  <div id="editor-grid"><div class="empty-state">Loading editor...</div></div>
+
+  <div class="editor-actions">
+    <button class="btn" onclick="Editor.addBeat()">+ Beat</button>
+    <button class="btn" onclick="Editor.addSection()">+ Section</button>
+    <div class="action-sep"></div>
+    <button class="btn primary" onclick="Editor.preview()">▶ Preview</button>
+    <button class="btn danger" onclick="Editor.stop()">⬛ Stop</button>
+    <div class="action-sep"></div>
+    <button class="btn primary" onclick="Editor.save()">Save</button>
+    <button class="btn" onclick="Editor.exportYaml()">Export YAML</button>
+  </div>
+</div>
+
+<!-- Code mode -->
+<div class="yaml-pane" id="yaml-pane">
+  <textarea class="yaml-editor" id="yaml-editor" rows="20" placeholder="YAML beat sheet..."></textarea>
+  <div class="parse-error" id="parse-error" hidden></div>
+  <div class="editor-actions">
+    <button class="btn primary" onclick="applyYaml()">Apply to grid</button>
+    <button class="btn primary" onclick="Editor.preview()">▶ Preview</button>
+    <button class="btn danger" onclick="Editor.stop()">⬛ Stop</button>
+    <div class="action-sep"></div>
+    <button class="btn primary" onclick="Editor.save()">Save</button>
+    <button class="btn" onclick="Editor.exportYaml()">Export YAML</button>
+  </div>
+</div>
 {% endblock %}
 {% block scripts %}
+<script src="/static/js/editor.js"></script>
 <script>
 async function loadSongs() {
   const songs = await apiGet('/songs');
   const el = document.getElementById('song-list');
-  if (!songs.length) { el.innerHTML = '<div class="empty-state">No songs uploaded yet</div>'; return; }
+  if (!songs.length) { el.innerHTML = '<div class="empty-state">No songs yet — create one below or upload YAML</div>'; return; }
   el.innerHTML = songs.map(s => `
     <div class="song-item">
       <span class="song-name">${s.title || s.name}</span>
-      <span class="song-meta">${s.bpm} bpm</span>
+      <span class="song-meta">${s.bpm} bpm · ${s.source}</span>
+      <button class="btn" onclick="Editor.loadSong('${s.name}')">Edit</button>
       <button class="btn" onclick="apiPost('/songs/${s.name}/play')">Play</button>
-      <button class="btn" onclick="exportSong('${s.name}')">Export</button>
       <button class="btn danger" onclick="deleteSong('${s.name}')">Delete</button>
     </div>`).join('');
-}
-async function uploadSong(e) {
-  e.preventDefault();
-  const yaml = document.getElementById('yaml-input').value;
-  if (!yaml.trim()) return false;
-  await apiPost('/songs', { yaml_content: yaml });
-  document.getElementById('yaml-input').value = '';
-  loadSongs();
-  return false;
-}
-async function exportSong(name) {
-  const resp = await fetch(`${API}/songs/${name}/export`);
-  const text = await resp.text();
-  const blob = new Blob([text], { type: 'text/yaml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `${name}.yaml`;
-  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
 async function deleteSong(name) {
   await apiDelete(`/songs/${name}`);
   loadSongs();
 }
-document.addEventListener('DOMContentLoaded', loadSongs);
+document.addEventListener('DOMContentLoaded', () => {
+  loadSongs();
+  Editor.init();
+});
 </script>
 {% endblock %}
