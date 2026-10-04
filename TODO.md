@@ -126,27 +126,27 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 **Goal:** Fix live site gaps vs mockup, add enterprise-grade observability, add visual beat sheet editor.
 
 ### Commit 1 — Backend services + controller fixes
-- [ ] `controller/services/event_log.py` — Ring buffer event log (200 events, typed, timestamped)
-- [ ] `controller/services/metrics.py` — Prometheus metrics at /metrics (prometheus_client)
-- [ ] `controller/services/mqtt_client.py` — Wildcard subscription for MQTT inspector, instrument publishes
-- [ ] `controller/engine/music_mode.py` — Skip clock sync for presets (2.1s → ~50ms), cache sync results 60s
-- [ ] `controller/engine/mode_engine.py` — Instrument tick with metrics, log events
-- [ ] `controller/api/routes.py` — Add /events, /mqtt/messages, /metrics endpoints
-- [ ] `controller/main.py` — Wire event_log, metrics
-- [ ] `controller/config.py` — LOG_FORMAT env var
-- [ ] `Dockerfile.controller` — Add prometheus_client
+- [x] `controller/services/event_log.py` — Ring buffer event log (200 events, typed, timestamped)
+- [x] `controller/services/metrics.py` — Prometheus metrics at /metrics (prometheus_client)
+- [x] `controller/services/mqtt_client.py` — Wildcard subscription for MQTT inspector, instrument publishes
+- [x] `controller/engine/music_mode.py` — Skip clock sync for presets (2.1s → ~500ms), cache sync results 60s
+- [x] `controller/engine/mode_engine.py` — Instrument tick with metrics, log events
+- [x] `controller/api/routes.py` — Add /events, /mqtt/messages, /metrics endpoints
+- [x] `controller/main.py` — Wire event_log, metrics
+- [x] `controller/config.py` — LOG_FORMAT env var
+- [x] `Dockerfile.controller` — Add prometheus_client
 
 ### Commit 2 — Dashboard + Settings UI fixes
-- [ ] `web/static/js/app.js` — Fix renderPanels (clock sync), renderNodes (clock col, roles, warn-stripe, expandable detail), add renderAlerts, renderEvents, WS countdown timer
-- [ ] `web/static/css/style.css` — Event log styles, MQTT inspector styles, info grid styles, touch target fixes
-- [ ] `controller/templates/dashboard.html` — Add #alerts, #events sections
-- [ ] `controller/templates/settings.html` — MQTT inspector, event history, controller info grid
-- [ ] `controller/templates/direct.html` — Add morph effect, all-nodes broadcast
+- [x] `web/static/js/app.js` — Fix renderPanels (clock sync), renderNodes (clock col, roles, warn-stripe, expandable detail), add renderAlerts, renderEvents, WS countdown timer
+- [x] `web/static/css/style.css` — Event log styles, MQTT inspector styles, info grid styles, filter chips
+- [x] `controller/templates/dashboard.html` — Add #alerts, #events sections
+- [x] `controller/templates/settings.html` — MQTT inspector, event history, controller info grid
+- [x] `controller/templates/direct.html` — Add morph effect, all-nodes broadcast
 
 ### Commit 3 — Beat sheet visual editor
-- [ ] `web/static/js/editor.js` — Step sequencer grid, palette brush, cell click, YAML ↔ visual sync, beat CRUD, section markers, repeat/hold
-- [ ] `controller/templates/music.html` — Replace textarea with visual editor + code tab + metadata/timing fields
-- [ ] `web/static/css/style.css` — Editor grid styles, palette bar, section markers
+- [x] `web/static/js/editor.js` — Step sequencer grid, palette brush, cell click, YAML ↔ visual sync, beat CRUD, section markers, repeat/hold
+- [x] `controller/templates/music.html` — Replace textarea with visual editor + code tab + metadata/timing fields
+- [x] `web/static/css/style.css` — Editor grid styles, palette bar, section markers
 
 ### Octolet repo
 - [ ] Add Prometheus ServiceMonitor for /metrics scraping
