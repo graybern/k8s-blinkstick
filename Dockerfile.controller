@@ -4,6 +4,7 @@ RUN pip install --no-cache-dir \
     fastapi==0.115.12 \
     starlette==0.46.2 \
     uvicorn==0.34.2 \
+    websockets==14.2 \
     httpx==0.28.1 \
     paho-mqtt==2.1.0 \
     pydantic==2.13.5 \
