@@ -20,18 +20,6 @@ async def music(request: Request):
     return templates.TemplateResponse("music.html", {"request": request, "page": "music"})
 
 
-@web_router.get("/modes", response_class=HTMLResponse)
-async def modes(request: Request):
-    templates = request.app.state.templates
-    return templates.TemplateResponse("modes.html", {"request": request, "page": "modes"})
-
-
-@web_router.get("/direct", response_class=HTMLResponse)
-async def direct(request: Request):
-    templates = request.app.state.templates
-    return templates.TemplateResponse("direct.html", {"request": request, "page": "direct"})
-
-
 @web_router.get("/settings", response_class=HTMLResponse)
 async def settings(request: Request):
     templates = request.app.state.templates

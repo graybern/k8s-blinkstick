@@ -281,16 +281,19 @@ label { font-size: 11px; color: var(--dim); display: block; margin-bottom: 4px; 
 .song-name { font-weight: 500; flex: 1; }
 .song-meta { font-size: 11px; color: var(--dim); }
 
-/* ── Mode cards ── */
+/* ── Mode cards + popover ── */
+.mode-popover {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; padding: 12px; margin-bottom: 12px;
+}
 .mode-card {
-  padding: 14px; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 4px; margin-bottom: 6px; cursor: pointer;
+  padding: 12px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 4px; margin-bottom: 4px;
   transition: border-color 80ms, background 80ms;
 }
 .mode-card:hover { background: var(--raised); border-color: var(--accent); }
 .mode-card.active { border-color: var(--accent); background: var(--accent-dim); }
-.mode-card .mode-name { font-weight: 600; font-size: 14px; }
-.mode-card .mode-layer { font-size: 11px; color: var(--dim); margin-top: 2px; }
+.mode-card .mode-name { font-weight: 600; font-size: 13px; }
 
 /* ── Event log ── */
 .event-log { padding: 0 0 12px; }

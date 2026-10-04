@@ -295,6 +295,13 @@ async def get_mqtt_messages(request: Request, limit: int = 50) -> list[dict]:
     return mqtt.get_mqtt_messages(limit=limit)
 
 
+@router.post("/clock/check")
+async def clock_check(request: Request) -> dict:
+    mqtt = request.app.state.mqtt_client
+    mqtt.publish_time_check()
+    return {"status": "time_check sent"}
+
+
 @router.get("/metrics")
 async def prometheus_metrics():
     body, content_type = get_metrics_response()

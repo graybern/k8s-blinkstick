@@ -2,17 +2,28 @@
 {% set page = "dashboard" %}
 {% block title %}Dashboard — BlinkStick{% endblock %}
 {% block content %}
-<section class="led-section" id="led-strip">
-  <div class="empty-state">Connecting to cluster...</div>
-</section>
 <div class="panels" id="panels"></div>
 <div class="now-playing" id="now-playing" hidden></div>
 <section class="node-section" id="nodes"></section>
+
+<!-- Inline mode switcher (popover) -->
+<div class="mode-popover" id="mode-popover" hidden>
+  <div class="section-head"><span class="section-title">Switch Mode</span><button class="alert-dismiss" onclick="document.getElementById('mode-popover').hidden=true">&times;</button></div>
+  <div id="mode-cards"></div>
+</div>
+
+<!-- Direct controls (expandable, visible in direct mode) -->
+<div id="direct-section" hidden>
+  <div class="section-head">
+    <span class="section-title">Direct Control</span>
+    <span class="updated" id="direct-mode-hint"></span>
+  </div>
+  <div id="direct-controls"></div>
+</div>
+
 <div class="action-bar" id="actions"></div>
 <section class="event-log">
-  <div class="section-head">
-    <span class="section-title">Activity</span>
-  </div>
+  <div class="section-head"><span class="section-title">Activity</span></div>
   <div class="event-list" id="events"><div class="empty-state">Loading events...</div></div>
 </section>
 {% endblock %}

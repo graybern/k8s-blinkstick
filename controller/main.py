@@ -50,7 +50,9 @@ async def ws_live(websocket: WebSocket):
         return
     try:
         while True:
-            await websocket.receive_text()
+            msg = await websocket.receive_text()
+            if msg == 'ping':
+                await websocket.send_text('pong')
     except WebSocketDisconnect:
         await ws_manager.disconnect(websocket)
     except Exception:
