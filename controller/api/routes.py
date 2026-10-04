@@ -80,6 +80,7 @@ async def get_status(request: Request) -> StatusResponse:
                 leds=info.get("leds", 0),
                 online=info.get("online", False),
                 last_seen=info.get("last_seen"),
+                clock_skew_ms=mqtt.get_clock_skew(name),
             ),
             leds=leds,
             health=health,
