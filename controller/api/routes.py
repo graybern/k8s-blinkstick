@@ -229,6 +229,9 @@ async def get_song(request: Request, name: str) -> SongDetail | dict:
 @router.delete("/songs/{name}")
 async def delete_song(request: Request, name: str) -> dict:
     store = request.app.state.song_store
+    source = store.get_source(name)
+    if source == "git":
+        return JSONResponse(status_code=403, content={"error": "Cannot delete git-managed songs — remove from git instead"})
     engine = request.app.state.engine
     ok = engine.run_coroutine(store.delete_song(name))
     if ok:

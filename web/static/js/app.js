@@ -12,9 +12,28 @@ let _pollInterval = null;
 
 async function apiGet(path) { return (await fetch(`${API}${path}`)).json(); }
 async function apiPost(path, body) {
-  return (await fetch(`${API}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })).json();
+  const resp = await fetch(`${API}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const data = await resp.json();
+  if (!resp.ok) showToast(data.error || `Error ${resp.status}`, 'error');
+  return data;
 }
-async function apiDelete(path) { return (await fetch(`${API}${path}`, { method: 'DELETE' })).json(); }
+async function apiDelete(path) {
+  const resp = await fetch(`${API}${path}`, { method: 'DELETE' });
+  const data = await resp.json();
+  if (!resp.ok) showToast(data.error || `Error ${resp.status}`, 'error');
+  return data;
+}
+
+function showToast(message, level = 'info') {
+  const alerts = document.getElementById('alerts');
+  if (!alerts) return;
+  const cls = level === 'error' ? 'crit' : 'warn';
+  const el = document.createElement('div');
+  el.className = `alert-banner ${cls}`;
+  el.innerHTML = `<span class="alert-text">${message}</span><button class="alert-dismiss" onclick="this.parentElement.remove()">&times;</button>`;
+  alerts.prepend(el);
+  setTimeout(() => el.remove(), 5000);
+}
 
 // ── Theme ──
 
