@@ -8,6 +8,7 @@ let _wsConnected = false;
 let _wsFails = 0;
 let _pollInterval = null;
 let _lastEventFetch = 0;
+let _activePopoverNode = null;
 const _dismissedAlerts = new Set();
 
 // ── API helpers ──
@@ -145,7 +146,6 @@ function updateAllViews(data) {
     renderAlerts(document.getElementById('alerts'), data.nodes);
     renderPanels(document.getElementById('panels'), data);
     renderNodes(document.getElementById('nodes'), data.nodes);
-    updateDirectColors(data.nodes);
   }
   if (data.playback !== undefined) renderNowPlaying(document.getElementById('now-playing'), data.playback);
 
@@ -188,6 +188,16 @@ function renderLEDStrip(container, nodes) {
       const unit = document.createElement('div');
       unit.className = 'node-unit';
       unit.dataset.node = node.name;
+      unit.setAttribute('role', 'button');
+      unit.tabIndex = 0;
+      unit.setAttribute('aria-label', `Control LEDs on ${node.name.replace('octolet-', '')}`);
+      unit.addEventListener('click', (e) => {
+        if (e.target.closest('.led-popover')) return;
+        openLedPopover(node.name);
+      });
+      unit.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLedPopover(node.name); }
+      });
       const pair = document.createElement('div');
       pair.className = 'led-pair';
       const ledCount = node.leds?.length || node.device?.leds || 2;
@@ -229,6 +239,96 @@ function renderLEDStrip(container, nodes) {
       el.classList.toggle('led-off', isOff);
     });
   });
+}
+
+// ── LED popover (click LED circle → inline color picker + effect control) ──
+
+function openLedPopover(nodeName) {
+  const wasOpen = _activePopoverNode === nodeName;
+  closeLedPopover();
+  if (wasOpen) return;
+
+  _activePopoverNode = nodeName;
+  const unit = document.querySelector(`.node-unit[data-node="${nodeName}"]`);
+  if (!unit) return;
+  unit.classList.add('active');
+
+  const node = _lastStatusData?.nodes?.find(n => n.name === nodeName);
+  if (!node?.present) return;
+
+  const ledCount = node.leds?.length || node.device?.leds || 2;
+  const popover = document.createElement('div');
+  popover.className = 'led-popover';
+  popover.setAttribute('role', 'dialog');
+  popover.setAttribute('aria-label', `Control LEDs on ${nodeName.replace('octolet-', '')}`);
+
+  let html = `<div class="pop-header"><span class="pop-title">${nodeName.replace('octolet-', '')}</span><button class="pop-close" onclick="closeLedPopover()" aria-label="Close">&times;</button></div>`;
+  for (let i = 0; i < ledCount; i++) {
+    const led = node.leds?.[i];
+    const hex = led ? '#' + [led.r, led.g, led.b].map(c => c.toString(16).padStart(2, '0')).join('') : '#000000';
+    html += `<div class="pop-row"><label>LED ${i}</label><input type="color" id="pop-led-${i}" value="${hex}"></div>`;
+  }
+  html += `<div class="pop-row"><label>Effect</label><select id="pop-effect"><option value="solid">solid</option><option value="pulse">pulse</option><option value="blink">blink</option><option value="morph">morph</option></select></div>`;
+  html += `<div class="pop-actions"><button class="btn primary" onclick="applyLedPopover('${nodeName}',${ledCount})">Apply</button><button class="btn" onclick="applyLedPopoverAll(${ledCount})">All nodes</button></div>`;
+  popover.innerHTML = html;
+  unit.appendChild(popover);
+
+  requestAnimationFrame(() => {
+    const rect = popover.getBoundingClientRect();
+    if (rect.right > window.innerWidth - 16) {
+      popover.style.left = 'auto';
+      popover.style.right = '0';
+      popover.style.transform = 'none';
+    }
+    if (rect.left < 16) {
+      popover.style.left = '0';
+      popover.style.transform = 'none';
+    }
+  });
+
+  popover.querySelector('input[type="color"]')?.focus();
+}
+
+function closeLedPopover() {
+  const existing = document.querySelector('.led-popover');
+  if (existing) existing.remove();
+  document.querySelectorAll('.node-unit.active').forEach(u => u.classList.remove('active'));
+  _activePopoverNode = null;
+}
+
+function hexToRgb(hex) { return { r: parseInt(hex.slice(1,3),16), g: parseInt(hex.slice(3,5),16), b: parseInt(hex.slice(5,7),16) }; }
+
+async function ensureDirectMode() {
+  const mode = _lastStatusData?.active_mode;
+  if (mode === 'direct') return;
+  const wasMusic = mode === 'music';
+  await apiPost('/modes/active', { mode: 'direct' });
+  showToast(wasMusic ? 'Stopped playback — switched to direct mode' : 'Switched to direct mode');
+}
+
+async function applyLedPopover(nodeName, ledCount) {
+  await ensureDirectMode();
+  const leds = [];
+  for (let i = 0; i < ledCount; i++) {
+    const hex = document.getElementById(`pop-led-${i}`)?.value || '#000000';
+    const {r, g, b} = hexToRgb(hex);
+    leds.push({ index: i, r, g, b });
+  }
+  const effect = document.getElementById('pop-effect')?.value || 'solid';
+  await apiPost('/direct', { action: 'set', leds, effect, params: {}, node: nodeName });
+}
+
+async function applyLedPopoverAll(ledCount) {
+  await ensureDirectMode();
+  const leds = [];
+  for (let i = 0; i < ledCount; i++) {
+    const hex = document.getElementById(`pop-led-${i}`)?.value || '#000000';
+    const {r, g, b} = hexToRgb(hex);
+    leds.push({ index: i, r, g, b });
+  }
+  const effect = document.getElementById('pop-effect')?.value || 'solid';
+  await apiPost('/direct', { action: 'set', leds, effect, params: {} });
+  closeLedPopover();
 }
 
 // ── Alerts (tracks dismissed IDs — dismissed alerts stay gone until condition clears) ──
@@ -327,8 +427,6 @@ function renderPanels(container, data) {
   sv.textContent = syncVal;
   sv.className = `panel-val ${syncClass}`;
   syncPanel.querySelector('[data-role="detail"]').textContent = syncDetail;
-
-  updateDirectSection(mode, data.nodes);
 }
 
 // ── Mode popover ──
@@ -366,99 +464,6 @@ async function setMode(name) {
   if (!data) return;
   _lastStatusData = data;
   updateAllViews(data);
-}
-
-// ── Direct controls (only rebuilds when node list changes — preserves picker state) ──
-
-function updateDirectSection(mode, nodes) {
-  const section = document.getElementById('direct-section');
-  if (!section) return;
-  const hint = document.getElementById('direct-mode-hint');
-  if (mode === 'direct') {
-    section.hidden = false;
-    if (hint) hint.textContent = '';
-    renderDirectControls(nodes);
-  } else {
-    section.hidden = false;
-    if (hint) hint.innerHTML = `<button class="btn" style="height:28px;font-size:10px" onclick="setMode('direct')">Enable direct mode</button>`;
-    renderDirectControls(nodes);
-  }
-}
-
-function renderDirectControls(nodes) {
-  const el = document.getElementById('direct-controls');
-  if (!el || !nodes) return;
-  const presentNodes = nodes.filter(n => n.present);
-  if (!presentNodes.length) {
-    el.innerHTML = '<div class="empty-state">No devices online</div>';
-    el._dcNodeKey = '';
-    return;
-  }
-
-  const nodeKey = presentNodes.map(n => n.name).join(',');
-  if (nodeKey === el._dcNodeKey) return;
-
-  let html = `<div class="song-item" style="background:var(--accent-dim);border-color:rgba(34,197,94,0.2)">
-    <span class="song-name" style="color:var(--accent)">All nodes</span>
-    <input type="color" id="color-all" value="#00ff00" style="min-width:44px">
-    <select id="effect-all" style="width:auto;min-width:80px;min-height:44px">
-      <option value="solid">solid</option><option value="pulse">pulse</option><option value="blink">blink</option><option value="morph">morph</option>
-    </select>
-    <button class="btn primary" onclick="sendDirectAll()">Apply all</button>
-  </div>`;
-
-  presentNodes.forEach(n => {
-    const currentHex = nodeToHex(n);
-    html += `<div class="song-item">
-      <span class="song-name">${n.name.replace('octolet-','')}</span>
-      <input type="color" id="color-${n.name}" value="${currentHex}" style="min-width:44px">
-      <select id="effect-${n.name}" style="width:auto;min-width:80px;min-height:44px">
-        <option value="solid">solid</option><option value="pulse">pulse</option><option value="blink">blink</option><option value="morph">morph</option>
-      </select>
-      <button class="btn" onclick="sendDirect('${n.name}',${n.device?.leds||2})">Apply</button>
-    </div>`;
-  });
-  el.innerHTML = html;
-  el._dcNodeKey = nodeKey;
-}
-
-function nodeToHex(node) {
-  const led = node.leds?.[0];
-  if (!led) return '#00ff00';
-  return '#' + [led.r, led.g, led.b].map(c => c.toString(16).padStart(2,'0')).join('');
-}
-
-function updateDirectColors(nodes) {
-  if (!nodes) return;
-  nodes.filter(n => n.present).forEach(n => {
-    const input = document.getElementById(`color-${n.name}`);
-    if (input && document.activeElement !== input) input.value = nodeToHex(n);
-  });
-}
-
-function hexToRgb(hex) { return { r: parseInt(hex.slice(1,3),16), g: parseInt(hex.slice(3,5),16), b: parseInt(hex.slice(5,7),16) }; }
-
-async function ensureDirectMode() {
-  const mode = _lastStatusData?.active_mode;
-  if (mode !== 'direct') await apiPost('/modes/active', { mode: 'direct' });
-}
-
-async function sendDirect(node, ledCount) {
-  await ensureDirectMode();
-  const {r,g,b} = hexToRgb(document.getElementById(`color-${node}`).value);
-  const effect = document.getElementById(`effect-${node}`).value;
-  const leds = []; for (let i = 0; i < ledCount; i++) leds.push({ index: i, r, g, b });
-  await apiPost('/direct', { action: 'set', leds, effect, params: {}, node });
-}
-
-async function sendDirectAll() {
-  await ensureDirectMode();
-  const {r,g,b} = hexToRgb(document.getElementById('color-all').value);
-  const effect = document.getElementById('effect-all').value;
-  const maxLeds = Math.max(2, ...(_lastStatusData?.nodes || []).filter(n => n.present).map(n => n.device?.leds || n.leds?.length || 2));
-  const leds = [];
-  for (let i = 0; i < maxLeds; i++) leds.push({ index: i, r, g, b });
-  await apiPost('/direct', { action: 'set', leds, effect, params: {} });
 }
 
 // ── Nodes (creates rows once per topology, updates cells in place) ──
@@ -715,7 +720,7 @@ async function initDashboard() {
       <button class="btn" onclick="playPreset('flash')">Flash</button>
       <button class="btn" onclick="playPreset('police')">Police</button>
       <div class="action-sep"></div>
-      <button class="btn" onclick="apiPost('/off')">All off</button>`;
+      <button class="btn" onclick="apiPost('/off');closeLedPopover()">All off</button>`;
   }
 }
 
@@ -744,6 +749,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const ws = new LiveSocket();
   ws.connect();
   ws.on(data => updateAllViews(data));
+
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLedPopover(); });
+  document.addEventListener('click', (e) => {
+    if (_activePopoverNode && !e.target.closest('.node-unit')) closeLedPopover();
+  });
 
   initGlobal();
   if (document.getElementById('panels')) initDashboard();
