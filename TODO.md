@@ -88,7 +88,7 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ---
 
-## Phase 3: Web UI + Music Mode ✅ CURRENT
+## Phase 3: Web UI + Music Mode ✅ COMPLETE (2026-10-03)
 
 **Goal:** Full web interface, beat sheet library, GitOps config pipeline.
 
@@ -107,8 +107,8 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] `Dockerfile.controller` — Add pyyaml, COPY web/
 
 ### Octolet repo
-- [ ] `songs/jingle-bells.yaml` — First beat sheet (with timing.loop, on_end, sections)
-- [ ] Update kustomization.yaml with configMapGenerator entries
+- [x] `songs/jingle-bells.yaml` — ConfigMap with labels, sections/repeats format
+- [x] Update kustomization.yaml — added as plain resource (not configMapGenerator)
 
 ### Verify
 - Play beat sheet via web UI → synchronized LEDs across 4 nodes (NTP-synced)
