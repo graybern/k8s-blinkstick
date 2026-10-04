@@ -161,6 +161,16 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ### Pause — audit UX, verify observability data quality, test editor on touchscreen
 
+### UI Restructure (2026-10-04) ✅
+- [x] 5 tabs → 3 tabs (Dashboard, Music, Settings)
+- [x] Modes merged into dashboard inline popover
+- [x] Direct merged into dashboard expandable section with real-time color pickers
+- [x] LED strip moved to base.html (global, all pages)
+- [x] WebSocket ping/pong keepalive + polling fallback (3s when WS unavailable)
+- [x] WebSocket 404 fix (route registration order before mounts)
+- [x] Removed htmx.min.js (50KB unused)
+- [x] Added POST /api/v1/clock/check endpoint
+
 ---
 
 ## Phase 4b: Event Overlays + Creative Modes
