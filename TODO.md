@@ -181,7 +181,7 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ---
 
-## UX Quality Pass — 21 Issues (Playwright audit 2026-10-04) ✅ CURRENT
+## UX Quality Pass — 21 Issues (Playwright audit 2026-10-04) ✅ COMPLETE
 
 ### Commit 1 — DOM update refactor (P0) ✅
 - [x] Replace innerHTML with targeted DOM updates in app.js (stop animation snap, picker resets, alert reappearance)
@@ -206,11 +206,11 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] initGlobal error state with retry
 - [x] Song delete confirmation dialog
 
-### Commit 4 — Accessibility + Contrast (P2)
-- [ ] WCAG contrast: terminal --muted, midnight --muted, dark --dim
-- [ ] Missing :active states (.btn.danger, .chip, .nav a, .np-stop)
-- [ ] ARIA roles (alert, button, tab) + tabindex on interactive elements
-- [ ] Skip-to-content link
+### Commit 4 — Accessibility + Contrast (P2) ✅
+- [x] WCAG contrast: terminal --muted, midnight --muted
+- [x] Missing :active states (.btn.danger, .chip, .nav a, .np-stop)
+- [x] ARIA roles (alert, button, tab) + tabindex on interactive elements
+- [x] Skip-to-content link
 
 ---
 

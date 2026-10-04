@@ -421,7 +421,10 @@ const jsyaml = window.jsyaml || null;
 function showVisual() {
   document.getElementById('visual-pane').classList.add('active');
   document.getElementById('yaml-pane').classList.remove('active');
-  document.querySelectorAll('.ed-tab').forEach((t, i) => t.classList.toggle('active', i === 0));
+  document.querySelectorAll('.ed-tab').forEach((t, i) => {
+    t.classList.toggle('active', i === 0);
+    t.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+  });
 }
 
 function showCode() {
@@ -430,7 +433,10 @@ function showCode() {
   document.getElementById('yaml-editor').value = yamlContent;
   document.getElementById('yaml-pane').classList.add('active');
   document.getElementById('visual-pane').classList.remove('active');
-  document.querySelectorAll('.ed-tab').forEach((t, i) => t.classList.toggle('active', i === 1));
+  document.querySelectorAll('.ed-tab').forEach((t, i) => {
+    t.classList.toggle('active', i === 1);
+    t.setAttribute('aria-selected', i === 1 ? 'true' : 'false');
+  });
 }
 
 function applyYaml() {

@@ -34,9 +34,9 @@
 
 <h2>Beat Sheet Editor</h2>
 
-<div class="editor-tabs">
-  <button class="ed-tab active" onclick="showVisual()">Visual</button>
-  <button class="ed-tab" onclick="showCode()">Code</button>
+<div class="editor-tabs" role="tablist">
+  <button class="ed-tab active" onclick="showVisual()" role="tab" aria-selected="true" id="tab-visual">Visual</button>
+  <button class="ed-tab" onclick="showCode()" role="tab" aria-selected="false" id="tab-code">Code</button>
 </div>
 
 <!-- Visual mode -->

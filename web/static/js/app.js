@@ -292,7 +292,7 @@ function renderPanels(container, data) {
 
   if (!container._panelsBuilt) {
     container.innerHTML = `
-      <div class="panel" onclick="toggleModePopover()" data-panel="mode">
+      <div class="panel" onclick="toggleModePopover()" data-panel="mode" role="button" tabindex="0" aria-label="Switch mode">
         <div class="panel-label">mode</div>
         <div class="panel-val ok" data-role="val"></div>
         <div class="panel-detail" data-role="detail">tap to switch</div>
@@ -302,7 +302,7 @@ function renderPanels(container, data) {
         <div class="panel-val" data-role="val"></div>
         <div class="panel-detail" data-role="detail"></div>
       </div>
-      <div class="panel" onclick="runClockCheck()" data-panel="sync">
+      <div class="panel" onclick="runClockCheck()" data-panel="sync" role="button" tabindex="0" aria-label="Check clock sync">
         <div class="panel-label">clock sync</div>
         <div class="panel-val" data-role="val"></div>
         <div class="panel-detail" data-role="detail"></div>

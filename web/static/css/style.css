@@ -40,7 +40,7 @@
 :root[data-theme="midnight"] {
   --bg: #0c0a1a; --surface: #14112a; --raised: #1c1836;
   --border: #2a2548; --text: #d0cce0; --dim: #6a6580;
-  --muted: #4a4660; --accent: #22c55e; --accent-dim: rgba(34,197,94,0.12);
+  --muted: #6a6580; --accent: #22c55e; --accent-dim: rgba(34,197,94,0.12);
   --warning: #eab308; --warning-dim: rgba(234,179,8,0.08);
   --danger: #ef4444; --danger-dim: rgba(239,68,68,0.08);
   --offline: #818cf8; --led-ring: rgba(255,255,255,0.04);
@@ -50,12 +50,20 @@
 :root[data-theme="terminal"] {
   --bg: #000000; --surface: #0a0a0a; --raised: #141414;
   --border: #1e1e1e; --text: #00ff41; --dim: #00aa2a;
-  --muted: #006618; --accent: #00ff41; --accent-dim: rgba(0,255,65,0.08);
+  --muted: #00aa2a; --accent: #00ff41; --accent-dim: rgba(0,255,65,0.08);
   --warning: #ffff00; --warning-dim: rgba(255,255,0,0.06);
   --danger: #ff0000; --danger-dim: rgba(255,0,0,0.06);
   --offline: #0088ff; --led-ring: rgba(0,255,65,0.04);
   color-scheme: dark;
 }
+
+/* ── Skip link ── */
+.skip-link {
+  position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden;
+  font-size: 12px; padding: 8px 16px; background: var(--accent); color: #fff; border-radius: 4px; z-index: 100;
+  text-decoration: none;
+}
+.skip-link:focus { position: fixed; left: 16px; top: 8px; width: auto; height: auto; }
 
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; }
@@ -87,6 +95,7 @@ body {
   transition: color 80ms, background 80ms;
 }
 .nav a:hover { color: var(--text); background: var(--raised); }
+.nav a:active { background: var(--accent-dim); transition: background 0ms; }
 .nav a.active { color: var(--accent); background: var(--accent-dim); }
 .nav-spacer { flex: 1; }
 .nav-status { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); padding-right: 4px; }
@@ -181,6 +190,7 @@ body {
   transition: background 80ms, border-color 80ms;
 }
 .np-stop:hover { background: var(--danger-dim); border-color: var(--danger); }
+.np-stop:active { background: rgba(239,68,68,0.18); transition: background 0ms; }
 .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
 .progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; transition: width 0.5s linear; }
 
@@ -253,6 +263,7 @@ body {
 .btn.primary:active { filter: brightness(0.8); transition: filter 0ms; }
 .btn.danger { border-color: var(--danger); color: var(--danger); }
 .btn.danger:hover { background: var(--danger-dim); }
+.btn.danger:active { background: rgba(239,68,68,0.18); transition: background 0ms; }
 
 /* ── Forms ── */
 h2 { font-size: 14px; color: var(--dim); font-weight: 600; margin: 16px 0 8px; }
@@ -320,6 +331,7 @@ label { font-size: 11px; color: var(--dim); display: block; margin-bottom: 4px; 
 }
 .chip.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
 .chip:hover { border-color: var(--accent); }
+.chip:active { background: var(--accent-dim); transition: background 0ms; }
 
 /* ── MQTT Inspector ── */
 .mqtt-inspector { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; max-height: 300px; overflow-y: auto; font-size: 11px; }
