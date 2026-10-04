@@ -1,9 +1,11 @@
 import logging
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
 import yaml
+
+from controller.services.metrics import get_metrics_response
 
 from controller.api.models import (
     LEDCommand,
@@ -277,3 +279,23 @@ async def play_preset(request: Request, name: str, body: PresetPlayRequest = Pre
     if result and "error" in result:
         return JSONResponse(status_code=400, content=result)
     return result or {}
+
+
+# ── Observability ──
+
+@router.get("/events")
+async def get_events(request: Request, limit: int = 50, type: str | None = None) -> list[dict]:
+    event_log = request.app.state.event_log
+    return event_log.get_recent(limit=limit, event_type=type)
+
+
+@router.get("/mqtt/messages")
+async def get_mqtt_messages(request: Request, limit: int = 50) -> list[dict]:
+    mqtt = request.app.state.mqtt_client
+    return mqtt.get_mqtt_messages(limit=limit)
+
+
+@router.get("/metrics")
+async def prometheus_metrics():
+    body, content_type = get_metrics_response()
+    return Response(content=body, media_type=content_type)

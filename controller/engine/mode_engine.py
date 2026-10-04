@@ -1,10 +1,12 @@
 import asyncio
 import logging
 import threading
+import time
 
 from controller.services.mqtt_client import MQTTClient
 from controller.services.prometheus import PrometheusClient
 from controller.services.song_store import SongStore
+from controller.services import metrics
 from controller.engine.status_mode import StatusMode
 from controller.engine.music_mode import MusicMode
 
@@ -121,11 +123,13 @@ class ModeEngine:
             log.warning("Unknown mode: %s", name)
             return
 
+        old_mode = self._active_mode_name
         self._active_mode_name = name
         self._mqtt.publish_mode({
             "mode": name,
             "led_strategy": "unified",
         })
+        metrics.record_mode_switch(old_mode or "none", name)
         log.info("Mode switched to: %s", name)
 
     async def direct_command(self, payload: dict):
@@ -147,7 +151,12 @@ class ModeEngine:
     async def _tick_loop(self):
         while not self._stop_event.is_set():
             try:
+                t0 = time.monotonic()
                 await self._tick()
+                metrics.observe_engine_tick(time.monotonic() - t0)
+                registry = self._mqtt.get_node_registry()
+                metrics.set_nodes_online(sum(1 for v in registry.values() if v.get("online")))
+                metrics.set_nodes_present(sum(1 for v in registry.values() if v.get("present")))
                 await asyncio.sleep(1.0)
             except asyncio.CancelledError:
                 return

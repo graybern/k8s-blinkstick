@@ -7,6 +7,7 @@ STATUS_POLL_INTERVAL = int(os.environ.get("STATUS_POLL_INTERVAL", "15"))
 DEFAULT_MODE = os.environ.get("DEFAULT_MODE", "status")
 PROMETHEUS_TIMEOUT = int(os.environ.get("PROMETHEUS_TIMEOUT", "10"))
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+LOG_FORMAT = os.environ.get("LOG_FORMAT", "text")
 K8S_NAMESPACE = os.environ.get("K8S_NAMESPACE", "blinkstick")
 SONG_POLL_INTERVAL = int(os.environ.get("SONG_POLL_INTERVAL", "30"))
 

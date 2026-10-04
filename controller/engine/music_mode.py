@@ -31,6 +31,8 @@ class MusicMode:
         self._beat_count = 0
         self._beat_ms = 500
         self._on_end = "status"
+        self._last_sync: dict[str, float] = {}
+        self._last_sync_time: float = 0
 
     async def start(self):
         log.info("Music mode started")
@@ -69,7 +71,7 @@ class MusicMode:
         if not node_order:
             return {"error": "No active nodes"}
         sheet = generate_preset(preset_name, node_order, bpm, color, color2)
-        return await self._play_sheet(sheet)
+        return await self._play_sheet(sheet, skip_sync=True)
 
     async def stop_playback(self) -> dict:
         active = self._mqtt.get_active_nodes()
@@ -82,13 +84,21 @@ class MusicMode:
         log.info("Playback stopped: %s", song)
         return {"stopped": song, "on_end": self._on_end}
 
-    async def _play_sheet(self, sheet: BeatSheet) -> dict:
+    async def _play_sheet(self, sheet: BeatSheet, skip_sync: bool = False) -> dict:
         if self._playing:
             await self.stop_playback()
 
-        sync = await self._check_clock_sync()
+        if skip_sync:
+            sync = self._last_sync if (time.time() - self._last_sync_time < 60) else {}
+        elif time.time() - self._last_sync_time < 60:
+            sync = self._last_sync
+        else:
+            sync = await self._check_clock_sync()
+            self._last_sync = sync
+            self._last_sync_time = time.time()
+
         max_skew = max(sync.values()) if sync else 0
-        if max_skew > 200:
+        if not skip_sync and max_skew > 200:
             return {"error": f"Clock skew too high: {max_skew:.0f}ms", "sync": sync}
 
         node_beats = self._build_node_beats(sheet)
@@ -96,7 +106,7 @@ class MusicMode:
             return {"error": "No beats generated"}
 
         beat_ms = int(60000 / sheet.timing.bpm)
-        start_at = time.time() + 3.0
+        start_at = time.time() + (0.5 if skip_sync else 3.0)
         loop = sheet.timing.loop
 
         for node, beats in node_beats.items():
