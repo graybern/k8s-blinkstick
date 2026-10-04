@@ -181,6 +181,39 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ---
 
+## UX Quality Pass — 21 Issues (Playwright audit 2026-10-04) ✅ CURRENT
+
+### Commit 1 — DOM update refactor (P0)
+- [ ] Replace innerHTML with targeted DOM updates in app.js (stop animation snap, picker resets, alert reappearance)
+- [ ] LED off visual distinction (CSS .led-off class for (0,0,0))
+- [ ] sendDirectAll use actual node LED count (not hardcoded 2)
+- [ ] toggleNodeDetail triggers immediate re-render
+- [ ] Direct controls preserve user input between ticks
+
+### Commit 2 — Editor data integrity (P0+P1)
+- [ ] Fix grid editor save: write _expandedCache edits back to data.beats
+- [ ] Invalidate cache on addBeat/dupBeat/delBeat
+- [ ] Replace prompt()/alert() with inline inputs + showToast()
+- [ ] Add js-yaml CDN or rename Export to JSON
+
+### Commit 3 — Error handling + Settings (P1)
+- [ ] apiGet error handling + toast
+- [ ] Settings MQTT setInterval cleared on Pause/Resume
+- [ ] settings.html triggerClockCheck fix (still calls /songs/stop)
+- [ ] WS onmessage log parse errors
+- [ ] Polling fallback error feedback
+- [ ] Poll events on tick (not just /status)
+- [ ] initGlobal error state with retry
+- [ ] Song delete confirmation dialog
+
+### Commit 4 — Accessibility + Contrast (P2)
+- [ ] WCAG contrast: terminal --muted, midnight --muted, dark --dim
+- [ ] Missing :active states (.btn.danger, .chip, .nav a, .np-stop)
+- [ ] ARIA roles (alert, button, tab) + tabindex on interactive elements
+- [ ] Skip-to-content link
+
+---
+
 ## Phase 4b: Event Overlays + Creative Modes
 
 **Goal:** Layered overlays, screensaver modes, Twingate integration.
