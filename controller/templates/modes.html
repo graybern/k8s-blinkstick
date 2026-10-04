@@ -7,13 +7,28 @@
 {% endblock %}
 {% block scripts %}
 <script>
+const MODE_DESCRIPTIONS = {
+  status: 'Prometheus health visualization — green breathing = healthy, amber = warning, red blink = critical',
+  direct: 'Manual LED control — pick colors and effects per node from the Direct page',
+  music: 'Beat sheet playback — synchronized LED patterns across all nodes via NTP clock sync',
+};
+
 async function loadModes() {
   const modes = await apiGet('/modes');
   const el = document.getElementById('mode-list');
   el.innerHTML = modes.map(m => `
-    <div class="mode-card${m.active ? ' active' : ''}" onclick="setMode('${m.name}')">
-      <div class="mode-name">${m.name}</div>
-      <div class="mode-layer">${m.layer} · ${m.led_strategy}${m.active ? ' · active' : ''}</div>
+    <div class="mode-card${m.active ? ' active' : ''}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div class="mode-name">${m.name}</div>
+          <div class="mode-layer">${m.layer} · ${m.led_strategy}${m.active ? ' · active' : ''}</div>
+          <div style="font-size:11px;color:var(--dim);margin-top:4px">${MODE_DESCRIPTIONS[m.name] || ''}</div>
+        </div>
+        ${m.active
+          ? '<span style="font-size:11px;color:var(--accent);font-weight:500;padding:8px 14px;border:1px solid var(--accent);border-radius:4px">Active</span>'
+          : `<button class="btn" onclick="setMode('${m.name}')">Switch</button>`
+        }
+      </div>
     </div>`).join('');
 }
 async function setMode(name) {

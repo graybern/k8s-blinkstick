@@ -72,7 +72,7 @@ const Editor = {
         html += '<div class="grid-cell">';
         for (let li = 0; li < leds; li++) {
           const color = beat.cells?.[ni]?.[li] || '#000000';
-          const glow = color !== '#000000' ? `box-shadow:0 0 6px ${color}40` : '';
+          const glow = color !== '#000000' ? `box-shadow:0 0 8px ${color}60` : '';
           html += `<span class="grid-led" style="background:${color};${glow}" data-beat="${idx}" data-node="${ni}" data-led="${li}" onclick="Editor.clickCell(${idx},${ni},${li})"></span>`;
         }
         html += '</div>';

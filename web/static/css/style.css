@@ -97,8 +97,9 @@ body {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 4px; color: var(--dim);
   font-family: var(--font); font-size: 10px;
-  padding: 8px 10px; min-height: 44px; cursor: pointer;
-  transition: border-color 80ms;
+  padding: 4px 8px; height: 32px; width: auto; min-width: 0;
+  cursor: pointer; transition: border-color 80ms;
+  flex-shrink: 0;
 }
 .theme-select:hover { border-color: var(--accent); }
 
@@ -374,7 +375,7 @@ label { font-size: 11px; color: var(--dim); display: block; margin-bottom: 4px; 
 .grid-actions button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 4px 6px; font-family: var(--font); opacity: 0.4; transition: opacity 80ms; }
 .grid-actions button:hover { opacity: 1; color: var(--text); }
 .grid-cell { display: table-cell; vertical-align: middle; padding: 3px; background: var(--surface); border-radius: 3px; transition: background 80ms; }
-.grid-led { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; display: inline-block; margin: 0 1px; transition: transform 80ms; }
+.grid-led { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.08); cursor: pointer; display: inline-block; margin: 0 2px; transition: transform 80ms; }
 .grid-led:hover { transform: scale(1.15); }
 .grid-led.empty { background: var(--border); }
 .hold-badge { font-size: 9px; color: var(--muted); background: var(--raised); padding: 1px 5px; border-radius: 2px; margin-left: 4px; }

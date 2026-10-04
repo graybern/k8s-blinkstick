@@ -52,6 +52,7 @@ class LiveSocket {
   }
 
   connect() {
+    this._setStatus(null);
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     this.ws = new WebSocket(`${proto}://${location.host}/ws/live`);
     this.ws.onopen = () => {
@@ -76,9 +77,17 @@ class LiveSocket {
 
   _setStatus(connected) {
     const dot = document.querySelector('.ws-dot');
-    if (dot) dot.className = `ws-dot ${connected ? 'connected' : 'disconnected'}`;
     const time = document.querySelector('.ws-time');
-    if (time) time.textContent = connected ? 'now' : 'offline';
+    if (connected === null) {
+      if (dot) dot.className = 'ws-dot disconnected';
+      if (time) time.textContent = 'connecting...';
+    } else if (connected) {
+      if (dot) dot.className = 'ws-dot connected';
+      if (time) time.textContent = 'now';
+    } else {
+      if (dot) dot.className = 'ws-dot disconnected';
+      if (time) time.textContent = 'reconnecting...';
+    }
   }
 }
 
@@ -171,10 +180,10 @@ function renderPanels(container, data) {
       <div class="panel-val ${healthClass}">${healthy} / ${total}</div>
       <div class="panel-detail">${healthDetail}</div>
     </div>
-    <div class="panel">
+    <div class="panel" onclick="runClockCheck()">
       <div class="panel-label">clock sync</div>
       <div class="panel-val ${syncClass}">${syncVal}</div>
-      <div class="panel-detail">${syncDetail}</div>
+      <div class="panel-detail">${syncDetail === 'no data' ? 'tap to check' : syncDetail}</div>
     </div>`;
 }
 
@@ -274,6 +283,16 @@ function renderNowPlaying(container, playback) {
 }
 
 // ── Actions ──
+
+async function runClockCheck() {
+  await apiPost('/songs/stop').catch(() => {});
+  const panel = document.querySelector('.panel:last-child .panel-detail');
+  if (panel) panel.textContent = 'checking...';
+  setTimeout(async () => {
+    const data = await apiGet('/status');
+    renderPanels(document.getElementById('panels'), data);
+  }, 3000);
+}
 
 async function switchMode() {
   const modes = await apiGet('/modes');
