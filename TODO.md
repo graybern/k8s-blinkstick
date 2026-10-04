@@ -183,12 +183,12 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ## UX Quality Pass — 21 Issues (Playwright audit 2026-10-04) ✅ CURRENT
 
-### Commit 1 — DOM update refactor (P0)
-- [ ] Replace innerHTML with targeted DOM updates in app.js (stop animation snap, picker resets, alert reappearance)
-- [ ] LED off visual distinction (CSS .led-off class for (0,0,0))
-- [ ] sendDirectAll use actual node LED count (not hardcoded 2)
-- [ ] toggleNodeDetail triggers immediate re-render
-- [ ] Direct controls preserve user input between ticks
+### Commit 1 — DOM update refactor (P0) ✅
+- [x] Replace innerHTML with targeted DOM updates in app.js (stop animation snap, picker resets, alert reappearance)
+- [x] LED off visual distinction (CSS .led-off class for (0,0,0))
+- [x] sendDirectAll use actual node LED count (not hardcoded 2)
+- [x] toggleNodeDetail triggers immediate re-render
+- [x] Direct controls preserve user input between ticks
 
 ### Commit 2 — Editor data integrity (P0+P1)
 - [ ] Fix grid editor save: write _expandedCache edits back to data.beats

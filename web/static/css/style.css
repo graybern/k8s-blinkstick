@@ -135,6 +135,7 @@ body {
 .led.red { background: #ef4444; box-shadow: 0 0 12px 3px rgba(239,68,68,0.5), 0 0 32px 8px rgba(239,68,68,0.1); }
 .led.blue { background: #6366f1; box-shadow: 0 0 10px 3px rgba(99,102,241,0.4); }
 .led.off { background: var(--border); box-shadow: none; }
+.led.led-off { background: var(--border); box-shadow: none; opacity: 0.15; }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
 .led.breathe { animation: breathe 3s ease-in-out infinite; }
 .node-label { font-size: 10px; color: var(--dim); letter-spacing: 0.04em; }

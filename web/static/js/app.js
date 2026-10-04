@@ -7,6 +7,7 @@ let _lastStatusData = null;
 let _wsConnected = false;
 let _wsFails = 0;
 let _pollInterval = null;
+const _dismissedAlerts = new Set();
 
 // ── API helpers ──
 
@@ -140,59 +141,128 @@ function updateAllViews(data) {
   if (data.playback !== undefined) renderNowPlaying(document.getElementById('now-playing'), data.playback);
 }
 
-// ── LED rendering (global — renders on every page) ──
-
-function ledStyle(r, g, b) {
-  return `background:rgb(${r},${g},${b});box-shadow:0 0 12px 3px rgba(${r},${g},${b},0.5),0 0 32px 8px rgba(${r},${g},${b},0.1)`;
-}
+// ── LED rendering (creates once, updates styles in place — no animation snap) ──
 
 function renderLEDStrip(container, nodes) {
   if (!container || !nodes) return;
-  let html = '<div class="led-row">';
-  nodes.forEach(node => {
-    if (!node.present) return;
-    html += '<div class="node-unit"><div class="led-pair">';
-    (node.leds || []).forEach(led => {
-      const breathe = node.health?.severity === 'healthy' ? ' breathe' : '';
-      html += `<div class="led${breathe}" style="${ledStyle(led.r, led.g, led.b)}"></div>`;
+  const presentNodes = nodes.filter(n => n.present);
+
+  if (!container._ledBuilt) {
+    container.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'led-row';
+    container.appendChild(row);
+    const legend = document.createElement('div');
+    legend.className = 'legend';
+    legend.innerHTML =
+      '<div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span>healthy</div>' +
+      '<div class="legend-item"><span class="legend-dot" style="background:#eab308"></span>warning</div>' +
+      '<div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>critical</div>' +
+      '<div class="legend-item"><span class="legend-dot" style="background:#6366f1"></span>offline</div>';
+    container.appendChild(legend);
+    container._ledBuilt = true;
+    container._ledNodeKey = '';
+  }
+
+  const row = container.querySelector('.led-row');
+  const nodeKey = presentNodes.map(n => `${n.name}:${n.leds?.length || n.device?.leds || 2}`).join(',');
+
+  if (nodeKey !== container._ledNodeKey) {
+    row.innerHTML = '';
+    presentNodes.forEach(node => {
+      const unit = document.createElement('div');
+      unit.className = 'node-unit';
+      unit.dataset.node = node.name;
+      const pair = document.createElement('div');
+      pair.className = 'led-pair';
+      const ledCount = node.leds?.length || node.device?.leds || 2;
+      for (let i = 0; i < ledCount; i++) {
+        const led = document.createElement('div');
+        led.className = 'led led-off';
+        pair.appendChild(led);
+      }
+      unit.appendChild(pair);
+      const label = document.createElement('div');
+      label.className = 'node-label';
+      label.textContent = node.name.replace('octolet-', '');
+      unit.appendChild(label);
+      row.appendChild(unit);
     });
-    if (!node.leds?.length) { const n = node.device?.leds || 2; for (let i = 0; i < n; i++) html += '<div class="led off"></div>'; }
-    html += `</div><div class="node-label">${node.name.replace('octolet-', '')}</div></div>`;
+    container._ledNodeKey = nodeKey;
+  }
+
+  presentNodes.forEach(node => {
+    const unit = row.querySelector(`[data-node="${node.name}"]`);
+    if (!unit) return;
+    const ledEls = unit.querySelectorAll('.led');
+    const ledData = node.leds || [];
+
+    ledEls.forEach((el, i) => {
+      const led = ledData[i];
+      if (!led) {
+        el.style.background = '';
+        el.style.boxShadow = '';
+        el.classList.remove('breathe');
+        el.classList.add('led-off');
+        return;
+      }
+      const isOff = led.r === 0 && led.g === 0 && led.b === 0;
+      const shouldBreathe = !isOff && node.health?.severity === 'healthy';
+      el.style.background = isOff ? '' : `rgb(${led.r},${led.g},${led.b})`;
+      el.style.boxShadow = isOff ? '' : `0 0 12px 3px rgba(${led.r},${led.g},${led.b},0.5),0 0 32px 8px rgba(${led.r},${led.g},${led.b},0.1)`;
+      el.classList.toggle('breathe', shouldBreathe);
+      el.classList.toggle('led-off', isOff);
+    });
   });
-  html += '</div><div class="legend">';
-  html += '<div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span>healthy</div>';
-  html += '<div class="legend-item"><span class="legend-dot" style="background:#eab308"></span>warning</div>';
-  html += '<div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>critical</div>';
-  html += '<div class="legend-item"><span class="legend-dot" style="background:#6366f1"></span>offline</div></div>';
-  container.innerHTML = html;
 }
 
-// ── Alerts ──
+// ── Alerts (tracks dismissed IDs — dismissed alerts stay gone until condition clears) ──
+
+function dismissAlert(btn) {
+  const banner = btn.parentElement;
+  if (banner.dataset.alertId) _dismissedAlerts.add(banner.dataset.alertId);
+  banner.remove();
+}
 
 function renderAlerts(container, nodes) {
   if (!container || !nodes) return;
-  const alerts = [];
+
+  const current = new Map();
   nodes.forEach(n => {
     if (!n.health || !n.present) return;
     const h = n.health;
-    if (h.severity === 'critical') alerts.push({ level: 'crit', text: `${n.name} is critical` });
-    else if (h.severity === 'warning') {
+    if (h.severity === 'critical') {
+      current.set(`${n.name}-crit`, { level: 'crit', text: `${n.name} is critical` });
+    } else if (h.severity === 'warning') {
       const reasons = [];
       if (h.cpu_usage > 0.7) reasons.push(`cpu ${Math.round(h.cpu_usage*100)}%`);
       if (h.memory_usage > 0.7) reasons.push(`mem ${Math.round(h.memory_usage*100)}%`);
       if (h.disk_usage > 0.8) reasons.push(`disk ${Math.round(h.disk_usage*100)}%`);
-      alerts.push({ level: 'warn', text: `${n.name} ${reasons.join(', ')} — above threshold` });
+      current.set(`${n.name}-warn`, { level: 'warn', text: `${n.name} ${reasons.join(', ')} — above threshold` });
     }
   });
-  container.innerHTML = alerts.map(a =>
-    `<div class="alert-banner ${a.level}"><span class="alert-text">${a.text}</span><button class="alert-dismiss" onclick="this.parentElement.remove()">&times;</button></div>`
-  ).join('');
+
+  container.querySelectorAll('[data-alert-id]').forEach(el => {
+    if (!current.has(el.dataset.alertId)) el.remove();
+  });
+  _dismissedAlerts.forEach(id => { if (!current.has(id)) _dismissedAlerts.delete(id); });
+
+  current.forEach((alert, id) => {
+    if (_dismissedAlerts.has(id)) return;
+    if (container.querySelector(`[data-alert-id="${id}"]`)) return;
+    const el = document.createElement('div');
+    el.className = `alert-banner ${alert.level}`;
+    el.dataset.alertId = id;
+    el.innerHTML = `<span class="alert-text">${alert.text}</span><button class="alert-dismiss" onclick="dismissAlert(this)">&times;</button>`;
+    container.appendChild(el);
+  });
 }
 
-// ── Panels ──
+// ── Panels (creates structure once, updates text/classes in place) ──
 
 function renderPanels(container, data) {
   if (!container) return;
+
   const mode = data.active_mode || 'unknown';
   const present = data.nodes?.filter(n => n.present) || [];
   const total = present.length;
@@ -205,22 +275,43 @@ function renderPanels(container, data) {
   const syncVal = maxSkew !== null ? `<${maxSkew + 1}ms` : '--';
   const syncDetail = maxSkew === null ? 'tap to check' : maxSkew < 50 ? 'all synced' : `max ${maxSkew}ms`;
 
-  container.innerHTML = `
-    <div class="panel" onclick="toggleModePopover()">
-      <div class="panel-label">mode</div>
-      <div class="panel-val ok">${mode}</div>
-      <div class="panel-detail">tap to switch</div>
-    </div>
-    <div class="panel">
-      <div class="panel-label">health</div>
-      <div class="panel-val ${healthClass}">${healthy} / ${total}</div>
-      <div class="panel-detail">${healthDetail}</div>
-    </div>
-    <div class="panel" onclick="runClockCheck()">
-      <div class="panel-label">clock sync</div>
-      <div class="panel-val ${syncClass}">${syncVal}</div>
-      <div class="panel-detail">${syncDetail}</div>
-    </div>`;
+  if (!container._panelsBuilt) {
+    container.innerHTML = `
+      <div class="panel" onclick="toggleModePopover()" data-panel="mode">
+        <div class="panel-label">mode</div>
+        <div class="panel-val ok" data-role="val"></div>
+        <div class="panel-detail" data-role="detail">tap to switch</div>
+      </div>
+      <div class="panel" data-panel="health">
+        <div class="panel-label">health</div>
+        <div class="panel-val" data-role="val"></div>
+        <div class="panel-detail" data-role="detail"></div>
+      </div>
+      <div class="panel" onclick="runClockCheck()" data-panel="sync">
+        <div class="panel-label">clock sync</div>
+        <div class="panel-val" data-role="val"></div>
+        <div class="panel-detail" data-role="detail"></div>
+      </div>`;
+    container._panelsBuilt = true;
+  }
+
+  const modePanel = container.querySelector('[data-panel="mode"]');
+  const healthPanel = container.querySelector('[data-panel="health"]');
+  const syncPanel = container.querySelector('[data-panel="sync"]');
+
+  const mv = modePanel.querySelector('[data-role="val"]');
+  mv.textContent = mode;
+  mv.className = 'panel-val ok';
+
+  const hv = healthPanel.querySelector('[data-role="val"]');
+  hv.textContent = `${healthy} / ${total}`;
+  hv.className = `panel-val ${healthClass}`;
+  healthPanel.querySelector('[data-role="detail"]').textContent = healthDetail;
+
+  const sv = syncPanel.querySelector('[data-role="val"]');
+  sv.textContent = syncVal;
+  sv.className = `panel-val ${syncClass}`;
+  syncPanel.querySelector('[data-role="detail"]').textContent = syncDetail;
 
   updateDirectSection(mode, data.nodes);
 }
@@ -260,7 +351,7 @@ async function setMode(name) {
   updateAllViews(data);
 }
 
-// ── Direct controls (inline on dashboard) ──
+// ── Direct controls (only rebuilds when node list changes — preserves picker state) ──
 
 function updateDirectSection(mode, nodes) {
   const section = document.getElementById('direct-section');
@@ -281,7 +372,14 @@ function renderDirectControls(nodes) {
   const el = document.getElementById('direct-controls');
   if (!el || !nodes) return;
   const presentNodes = nodes.filter(n => n.present);
-  if (!presentNodes.length) { el.innerHTML = '<div class="empty-state">No devices online</div>'; return; }
+  if (!presentNodes.length) {
+    el.innerHTML = '<div class="empty-state">No devices online</div>';
+    el._dcNodeKey = '';
+    return;
+  }
+
+  const nodeKey = presentNodes.map(n => n.name).join(',');
+  if (nodeKey === el._dcNodeKey) return;
 
   let html = `<div class="song-item" style="background:var(--accent-dim);border-color:rgba(34,197,94,0.2)">
     <span class="song-name" style="color:var(--accent)">All nodes</span>
@@ -304,6 +402,7 @@ function renderDirectControls(nodes) {
     </div>`;
   });
   el.innerHTML = html;
+  el._dcNodeKey = nodeKey;
 }
 
 function nodeToHex(node) {
@@ -339,52 +438,166 @@ async function sendDirectAll() {
   await ensureDirectMode();
   const {r,g,b} = hexToRgb(document.getElementById('color-all').value);
   const effect = document.getElementById('effect-all').value;
-  await apiPost('/direct', { action: 'set', leds: [{ index: 0, r, g, b }, { index: 1, r, g, b }], effect, params: {} });
+  const maxLeds = Math.max(2, ...(_lastStatusData?.nodes || []).filter(n => n.present).map(n => n.device?.leds || n.leds?.length || 2));
+  const leds = [];
+  for (let i = 0; i < maxLeds; i++) leds.push({ index: i, r, g, b });
+  await apiPost('/direct', { action: 'set', leds, effect, params: {} });
 }
 
-// ── Nodes ──
+// ── Nodes (creates rows once per topology, updates cells in place) ──
 
 function renderNodes(container, nodes) {
   if (!container || !nodes) return;
+
+  if (!container._nodesBuilt) {
+    container.innerHTML = `
+      <div class="section-head">
+        <span class="section-title">Nodes</span>
+        <span class="updated" data-role="updated"></span>
+      </div>
+      <div class="node-table-wrap">
+        <div class="node-header"><span>node</span><span>leds</span><span>cpu</span><span>mem</span><span>disk</span><span>clock</span></div>
+        <div class="node-list" data-role="node-list"></div>
+      </div>`;
+    container._nodesBuilt = true;
+    container._nodeTopology = '';
+  }
+
   const sec = _lastUpdate ? Math.round((Date.now() - _lastUpdate) / 1000) : '--';
-  let html = `<div class="section-head"><span class="section-title">Nodes</span><span class="updated">${nodes.length} agents · ${sec}s ago</span></div>`;
-  html += '<div class="node-table-wrap"><div class="node-header"><span>node</span><span>leds</span><span>cpu</span><span>mem</span><span>disk</span><span>clock</span></div><div class="node-list">';
+  container.querySelector('[data-role="updated"]').textContent = `${nodes.length} agents · ${sec}s ago`;
+
+  const list = container.querySelector('[data-role="node-list"]');
+  const topoKey = nodes.map(n => `${n.name}:${n.present ? 1 : 0}:${n.leds?.length || 0}`).join(',');
+
+  if (topoKey !== container._nodeTopology) {
+    list.innerHTML = '';
+    nodes.forEach(node => {
+      const row = document.createElement('div');
+      row.dataset.node = node.name;
+      row.addEventListener('click', () => toggleNodeDetail(node.name));
+
+      const id = document.createElement('div');
+      id.className = 'node-id';
+      const dot = document.createElement('span');
+      dot.className = 'dot off';
+      dot.dataset.role = 'dot';
+      id.appendChild(dot);
+      id.appendChild(document.createTextNode(node.name));
+      const roleName = node.name.includes('control') ? 'ctrl' : node.name.includes('worker') ? 'work' : '';
+      if (roleName) {
+        const roleSpan = document.createElement('span');
+        roleSpan.className = 'node-role';
+        roleSpan.textContent = roleName;
+        id.appendChild(roleSpan);
+      }
+      row.appendChild(id);
+
+      if (!node.present) {
+        row.className = 'node-row no-device';
+        const noLabel = document.createElement('div');
+        noLabel.className = 'no-device-label';
+        noLabel.textContent = 'no blinkstick';
+        row.appendChild(noLabel);
+      } else {
+        row.className = 'node-row';
+        const ledsMini = document.createElement('div');
+        ledsMini.className = 'node-leds-mini';
+        ledsMini.dataset.role = 'leds-mini';
+        const ledCount = node.leds?.length || node.device?.leds || 2;
+        for (let i = 0; i < ledCount; i++) {
+          const mini = document.createElement('span');
+          mini.className = 'led-mini';
+          ledsMini.appendChild(mini);
+        }
+        row.appendChild(ledsMini);
+
+        ['cpu', 'mem', 'disk', 'clock'].forEach(name => {
+          const cell = document.createElement('div');
+          cell.className = 'val';
+          cell.dataset.role = name;
+          cell.textContent = '--';
+          row.appendChild(cell);
+        });
+
+        const detail = document.createElement('div');
+        detail.className = 'node-detail';
+        detail.dataset.role = 'detail';
+        detail.style.display = 'none';
+        ['serial', 'leds', 'last seen', 'clock'].forEach(label => {
+          const item = document.createElement('div');
+          item.className = 'detail-item';
+          item.appendChild(document.createTextNode(label));
+          const val = document.createElement('span');
+          val.textContent = '--';
+          item.appendChild(val);
+          detail.appendChild(item);
+        });
+        row.appendChild(detail);
+      }
+
+      list.appendChild(row);
+    });
+    container._nodeTopology = topoKey;
+  }
+
   nodes.forEach(node => {
+    const row = list.querySelector(`[data-node="${node.name}"]`);
+    if (!row) return;
+
     const sev = node.health?.severity || 'unknown';
     const stripe = sev === 'warning' ? ' warn-stripe' : sev === 'critical' ? ' crit-stripe' : '';
     const noDevice = !node.present ? ' no-device' : '';
-    const dotClass = sev === 'healthy' ? 'ok' : sev === 'warning' ? 'warn' : sev === 'critical' ? 'crit' : 'off';
-    const role = node.name.includes('control') ? 'ctrl' : node.name.includes('worker') ? 'work' : '';
-    const expanded = _expandedNode === node.name;
-    html += `<div class="node-row${stripe}${noDevice}" onclick="toggleNodeDetail('${node.name}')">`;
-    html += `<div class="node-id"><span class="dot ${dotClass}"></span>${node.name}`;
-    if (role) html += `<span class="node-role">${role}</span>`;
-    html += '</div>';
-    if (!node.present) { html += '<div class="no-device-label">no blinkstick</div>'; }
-    else {
-      html += '<div class="node-leds-mini">';
-      (node.leds || []).forEach(led => { html += `<span class="led-mini" style="background:rgb(${led.r},${led.g},${led.b})"></span>`; });
-      html += '</div>';
-      const h = node.health || {};
-      const cpu = h.cpu_usage != null ? `${Math.round(h.cpu_usage * 100)}%` : '--';
-      const mem = h.memory_usage != null ? `${Math.round(h.memory_usage * 100)}%` : '--';
-      const disk = h.disk_usage != null ? `${Math.round(h.disk_usage * 100)}%` : '--';
-      const cpuClass = h.cpu_usage > 0.7 ? ' hot' : '';
-      const clock = node.device?.clock_skew_ms != null ? `${Math.round(node.device.clock_skew_ms)}ms` : '--';
-      html += `<div class="val${cpuClass}">${cpu}</div><div class="val">${mem}</div><div class="val">${disk}</div><div class="val">${clock}</div>`;
+    row.className = `node-row${stripe}${noDevice}`;
+
+    const dotEl = row.querySelector('[data-role="dot"]');
+    if (dotEl) {
+      const dotClass = sev === 'healthy' ? 'ok' : sev === 'warning' ? 'warn' : sev === 'critical' ? 'crit' : 'off';
+      dotEl.className = `dot ${dotClass}`;
+    }
+
+    if (!node.present) return;
+
+    const ledsMini = row.querySelector('[data-role="leds-mini"]');
+    if (ledsMini) {
+      const minis = ledsMini.querySelectorAll('.led-mini');
+      (node.leds || []).forEach((led, i) => {
+        if (i < minis.length) minis[i].style.background = `rgb(${led.r},${led.g},${led.b})`;
+      });
+    }
+
+    const h = node.health || {};
+    const cpuCell = row.querySelector('[data-role="cpu"]');
+    if (cpuCell) {
+      cpuCell.textContent = h.cpu_usage != null ? `${Math.round(h.cpu_usage * 100)}%` : '--';
+      cpuCell.className = h.cpu_usage > 0.7 ? 'val hot' : 'val';
+    }
+    const memCell = row.querySelector('[data-role="mem"]');
+    if (memCell) memCell.textContent = h.memory_usage != null ? `${Math.round(h.memory_usage * 100)}%` : '--';
+    const diskCell = row.querySelector('[data-role="disk"]');
+    if (diskCell) diskCell.textContent = h.disk_usage != null ? `${Math.round(h.disk_usage * 100)}%` : '--';
+    const clockCell = row.querySelector('[data-role="clock"]');
+    if (clockCell) clockCell.textContent = node.device?.clock_skew_ms != null ? `${Math.round(node.device.clock_skew_ms)}ms` : '--';
+
+    const detail = row.querySelector('[data-role="detail"]');
+    if (detail) {
+      const expanded = _expandedNode === node.name;
+      detail.style.display = expanded ? '' : 'none';
       if (expanded && node.device) {
+        const spans = detail.querySelectorAll('.detail-item span');
         const d = node.device;
-        const seen = d.last_seen ? `${Math.round((Date.now()/1000 - d.last_seen))}s ago` : '--';
-        html += `<div class="node-detail"><div class="detail-item">serial<span>${d.serial||'--'}</span></div><div class="detail-item">leds<span>${d.leds}</span></div><div class="detail-item">last seen<span>${seen}</span></div><div class="detail-item">clock<span>${d.clock_skew_ms!=null?Math.round(d.clock_skew_ms)+'ms':'--'}</span></div></div>`;
+        if (spans[0]) spans[0].textContent = d.serial || '--';
+        if (spans[1]) spans[1].textContent = d.leds != null ? String(d.leds) : '--';
+        if (spans[2]) spans[2].textContent = d.last_seen ? `${Math.round(Date.now()/1000 - d.last_seen)}s ago` : '--';
+        if (spans[3]) spans[3].textContent = d.clock_skew_ms != null ? `${Math.round(d.clock_skew_ms)}ms` : '--';
       }
     }
-    html += '</div>';
   });
-  html += '</div></div>';
-  container.innerHTML = html;
 }
 
-function toggleNodeDetail(name) { _expandedNode = _expandedNode === name ? null : name; }
+function toggleNodeDetail(name) {
+  _expandedNode = _expandedNode === name ? null : name;
+  renderNodes(document.getElementById('nodes'), _lastStatusData?.nodes);
+}
 
 // ── Events ──
 
@@ -401,17 +614,37 @@ function renderEvents(container, events) {
   }).join('');
 }
 
-// ── Now Playing ──
+// ── Now Playing (creates structure once, updates text + progress in place) ──
 
 function renderNowPlaying(container, playback) {
   if (!container) return;
-  if (!playback?.playing) { container.hidden = true; return; }
+  if (!playback?.playing) {
+    container.hidden = true;
+    container._npBuilt = false;
+    return;
+  }
   container.hidden = false;
+
   const pct = playback.total_beats > 0 ? Math.round((playback.beat_index / playback.total_beats) * 100) : 0;
   const elapsed = Math.round(playback.elapsed || 0);
   const total = playback.total_beats > 0 ? Math.round(playback.total_beats * 0.5) : 0;
   const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
-  container.innerHTML = `<div class="np-top"><span class="np-song">${playback.song||'Unknown'}</span><span class="np-spacer"></span><span class="np-time">${fmt(elapsed)} / ${fmt(total)}</span><button class="np-stop" onclick="stopPlayback()">Stop</button></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+
+  if (!container._npBuilt) {
+    container.innerHTML = `
+      <div class="np-top">
+        <span class="np-song"></span>
+        <span class="np-spacer"></span>
+        <span class="np-time"></span>
+        <button class="np-stop" onclick="stopPlayback()">Stop</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>`;
+    container._npBuilt = true;
+  }
+
+  container.querySelector('.np-song').textContent = playback.song || 'Unknown';
+  container.querySelector('.np-time').textContent = `${fmt(elapsed)} / ${fmt(total)}`;
+  container.querySelector('.progress-fill').style.width = `${pct}%`;
 }
 
 // ── Actions ──
