@@ -40,7 +40,7 @@
 :root[data-theme="midnight"] {
   --bg: #0c0a1a; --surface: #14112a; --raised: #1c1836;
   --border: #2a2548; --text: #d0cce0; --dim: #6a6580;
-  --muted: #6a6580; --accent: #22c55e; --accent-dim: rgba(34,197,94,0.12);
+  --muted: #5d5878; --accent: #22c55e; --accent-dim: rgba(34,197,94,0.12);
   --warning: #eab308; --warning-dim: rgba(234,179,8,0.08);
   --danger: #ef4444; --danger-dim: rgba(239,68,68,0.08);
   --offline: #818cf8; --led-ring: rgba(255,255,255,0.04);

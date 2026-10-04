@@ -36,6 +36,7 @@ async function loadSettings() {
   // Controller info
   const nodes = await apiGet('/nodes');
   const status = await apiGet('/status');
+  if (!nodes || !status) return;
   const infoEl = document.getElementById('controller-info');
   const online = nodes.filter(n => n.online).length;
   const present = nodes.filter(n => n.present).length;
@@ -72,6 +73,7 @@ async function loadSettings() {
 async function loadMqtt() {
   if (!_mqttLive) return;
   const msgs = await apiGet('/mqtt/messages?limit=30');
+  if (!msgs) return;
   const el = document.getElementById('mqtt-log');
   document.getElementById('mqtt-count').textContent = `${msgs.length} messages`;
   if (!msgs.length) { el.innerHTML = '<div class="empty-state">No messages yet</div>'; return; }
@@ -96,7 +98,7 @@ function toggleMqttLive() {
 
 async function loadEvents(typeFilter) {
   const url = typeFilter ? `/events?limit=50&type=${typeFilter}` : '/events?limit=50';
-  _allEvents = await apiGet(url);
+  _allEvents = await apiGet(url) || [];
   const el = document.getElementById('event-history');
   if (!_allEvents.length) { el.innerHTML = '<div class="empty-state">No events</div>'; return; }
   el.innerHTML = _allEvents.map(e => {

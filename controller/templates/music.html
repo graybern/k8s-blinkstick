@@ -89,7 +89,7 @@
 async function loadSongs() {
   const songs = await apiGet('/songs');
   const el = document.getElementById('song-list');
-  if (!songs.length) { el.innerHTML = '<div class="empty-state">No songs yet — create one below or upload YAML</div>'; return; }
+  if (!songs?.length) { el.innerHTML = '<div class="empty-state">No songs yet — create one below or upload YAML</div>'; return; }
   el.innerHTML = songs.map(s => `
     <div class="song-item">
       <span class="song-name">${s.title || s.name}</span>

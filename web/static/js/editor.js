@@ -7,7 +7,7 @@ const Editor = {
   mode: 'visual',
 
   async init() {
-    this.nodes = await apiGet('/nodes').then(ns => ns.filter(n => n.present));
+    this.nodes = await apiGet('/nodes').then(ns => (ns || []).filter(n => n.present));
     if (!this.nodes.length) {
       document.getElementById('editor-grid').innerHTML = '<div class="empty-state">No nodes online</div>';
       return;
@@ -404,7 +404,7 @@ const Editor = {
 
   async loadSong(name) {
     const detail = await apiGet(`/songs/${name}`);
-    if (detail.beat_sheet) {
+    if (detail?.beat_sheet) {
       this.data = detail.beat_sheet;
       this._invalidateCache();
       this.renderGrid();

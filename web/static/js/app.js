@@ -344,6 +344,7 @@ async function toggleModePopover() {
   if (!popover) return;
   if (!popover.hidden) { popover.hidden = true; return; }
   const modes = await apiGet('/modes');
+  if (!modes) return;
   document.getElementById('mode-cards').innerHTML = modes.map(m => `
     <div class="mode-card${m.active ? ' active' : ''}">
       <div style="display:flex;align-items:center;gap:10px">
@@ -362,6 +363,7 @@ async function setMode(name) {
   await apiPost('/modes/active', { mode: name });
   document.getElementById('mode-popover').hidden = true;
   const data = await apiGet('/status');
+  if (!data) return;
   _lastStatusData = data;
   updateAllViews(data);
 }
@@ -489,6 +491,8 @@ function renderNodes(container, nodes) {
     nodes.forEach(node => {
       const row = document.createElement('div');
       row.dataset.node = node.name;
+      row.setAttribute('role', 'button');
+      row.tabIndex = 0;
       row.addEventListener('click', () => toggleNodeDetail(node.name));
 
       const id = document.createElement('div');
@@ -684,15 +688,17 @@ async function playPreset(name) {
 
 async function initDashboard() {
   const data = await apiGet('/status');
-  _lastStatusData = data;
-  _lastUpdate = Date.now();
-  updateAllViews(data);
+  if (data) {
+    _lastStatusData = data;
+    _lastUpdate = Date.now();
+    updateAllViews(data);
+  }
 
   const playback = await apiGet('/songs/playing');
-  renderNowPlaying(document.getElementById('now-playing'), playback);
+  if (playback) renderNowPlaying(document.getElementById('now-playing'), playback);
 
   const events = await apiGet('/events?limit=10');
-  renderEvents(document.getElementById('events'), events);
+  if (events) renderEvents(document.getElementById('events'), events);
 
   const actions = document.getElementById('actions');
   if (actions) {
