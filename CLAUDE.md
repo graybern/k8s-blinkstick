@@ -129,7 +129,7 @@ LED assignment strategies per mode: `unified` (both LEDs same), `split` (LED 0 =
 
 ### Controller Design
 
-- **FastAPI** + Jinja2 + htmx + vanilla JS (no npm/build step)
+- **FastAPI** + Jinja2 + vanilla JS (no npm/build step, htmx removed)
 - **httpx** for Prometheus/Loki/K8s API queries (not the heavy `kubernetes` pip package)
 - **In-memory state only** — defaults to status mode on restart, no PVC needed
 - **ConfigMap watcher** — discovers songs and mode configs by label (30s poll)
@@ -138,6 +138,14 @@ LED assignment strategies per mode: `unified` (both LEDs same), `split` (LED 0 =
 - **Event log** — in-memory ring buffer (200 events) recording every MQTT publish, mode switch, playback action
 - **MQTT inspector** — wildcard subscription to `blinkstick/#` for debugging, stored in ring buffer
 - **Prometheus metrics** — `/metrics` endpoint with `prometheus_client` (counters, gauges, histograms for mode switches, commands, clock skew, tick duration)
+
+### Frontend Patterns
+
+- **DOM updates, not innerHTML**: render functions create structure once, then update `style`, `textContent`, `className` in place on each WS tick. Never replace innerHTML on a per-tick basis — it kills CSS animations, resets form inputs, and defeats transitions. Topology changes (node added/removed) trigger a full rebuild via a keyed cache check.
+- **Dismissed alerts**: `_dismissedAlerts` Set tracks dismissed alert IDs. Health alerts use `data-alert-id` attributes; `showToast` alerts don't, so they coexist in `#alerts` without interference.
+- **apiGet returns null on error**: all callers must null-guard. `apiGet` shows a toast automatically on failure.
+- **js-yaml CDN**: loaded in `music.html` only (`cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js`). `editor.js` checks `window.jsyaml` and falls back to JSON.
+- **No prompt()/alert()/confirm()**: use inline forms + `showToast()` instead. Blocking dialogs freeze the WS connection.
 
 ### Music Mode
 
