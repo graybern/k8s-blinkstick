@@ -262,8 +262,9 @@ const Editor = {
 
   _cellsToString(cells) {
     if (!cells) return '';
+    const palette = this.data.palette || {};
     const rev = {};
-    Object.entries(this.data.palette).forEach(([k, v]) => { rev[v.toUpperCase()] = k; });
+    Object.entries(palette).forEach(([k, v]) => { rev[v.toUpperCase()] = k; });
     let s = '';
     cells.forEach(nodeLeds => {
       (nodeLeds || []).forEach(color => {
@@ -315,19 +316,24 @@ const Editor = {
 
   toYaml() {
     const d = this.data;
-    const { beats, sections } = this._compactBeats();
-    d.beats = beats;
-    d.sections = sections;
+    if (!d) return '';
+    try {
+      const { beats, sections } = this._compactBeats();
+      d.beats = beats;
+      d.sections = sections;
+    } catch (e) {
+      console.warn('_compactBeats error, using raw data:', e.message);
+    }
     const sheet = {
       apiVersion: 'blinkstick.octolet.int/v1',
       kind: 'BeatSheet',
-      metadata: d.metadata,
-      timing: d.timing,
-      on_end: d.on_end,
-      palette: d.palette,
-      node_order: d.node_order,
-      sections: d.sections,
-      beats: d.beats,
+      metadata: d.metadata || {},
+      timing: d.timing || {},
+      on_end: d.on_end || 'status',
+      palette: d.palette || {},
+      node_order: d.node_order || [],
+      sections: d.sections || {},
+      beats: d.beats || [],
     };
     return jsyaml ? jsyaml.dump(sheet) : JSON.stringify(sheet, null, 2);
   },
@@ -428,9 +434,14 @@ function showVisual() {
 }
 
 function showCode() {
-  Editor.readMetadata();
-  const yamlContent = Editor.toYaml();
-  document.getElementById('yaml-editor').value = yamlContent;
+  try {
+    Editor.readMetadata();
+    const yamlContent = Editor.toYaml();
+    document.getElementById('yaml-editor').value = yamlContent;
+  } catch (e) {
+    console.error('showCode error:', e);
+    document.getElementById('yaml-editor').value = `# Error generating YAML: ${e.message}\n# Raw data:\n${JSON.stringify(Editor.data, null, 2)}`;
+  }
   document.getElementById('yaml-pane').classList.add('active');
   document.getElementById('visual-pane').classList.remove('active');
   document.querySelectorAll('.ed-tab').forEach((t, i) => {
