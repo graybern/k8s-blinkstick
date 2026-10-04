@@ -132,7 +132,22 @@ LED assignment strategies per mode: `unified` (both LEDs same), `split` (LED 0 =
 - **FastAPI** + Jinja2 + htmx + vanilla JS (no npm/build step)
 - **httpx** for Prometheus/Loki/K8s API queries (not the heavy `kubernetes` pip package)
 - **In-memory state only** — defaults to status mode on restart, no PVC needed
-- **ConfigMap watcher** — discovers songs and mode configs by label
+- **ConfigMap watcher** — discovers songs and mode configs by label (30s poll)
+- **Engine runs in a separate daemon thread** with its own asyncio event loop (not in starlette's lifespan — see [[starlette-lifecycle-bug]])
+- **WebSocket** `/ws/live` — pushes node state, health, playback info to dashboard at up to 10/sec
+- **Event log** — in-memory ring buffer (200 events) recording every MQTT publish, mode switch, playback action
+- **MQTT inspector** — wildcard subscription to `blinkstick/#` for debugging, stored in ring buffer
+- **Prometheus metrics** — `/metrics` endpoint with `prometheus_client` (counters, gauges, histograms for mode switches, commands, clock skew, tick duration)
+
+### Music Mode
+
+- **Pre-loaded timetable**: Controller builds the full beat sequence per node, sends ONE MQTT message per node with `play_sequence` action. Zero MQTT during playback.
+- **Wall-clock sync**: Agents execute from NTP-synced clocks. `start_at` is a future unix timestamp.
+- **Clock sync check**: Before song playback, controller publishes `time_check`, waits for agent clock responses. <50ms = ok, 50-200ms = warn, >200ms = block. **Skipped for presets** (ephemeral, not precision-critical). Cached 60s for songs.
+- **Beat sheet format**: YAML with palette, node_order, sections, repeats, holds. Validated via Pydantic.
+- **Visual editor**: Step sequencer grid (nodes as columns, beats as rows) with palette brush, section markers, Visual ↔ Code toggle. Syncs between grid and YAML.
+- **Built-in presets**: chase, alternate, rainbow, flash, police — generated programmatically, no YAML needed.
+- **Song store**: ConfigMaps with label `blinkstick.octolet.int/type: song`, polled every 30s.
 
 ## BlinkStick Python API (what we use)
 

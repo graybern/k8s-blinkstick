@@ -121,7 +121,49 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ---
 
-## Phase 4: Event Overlays + Creative Modes
+## Phase 4a: UI Fixes + Observability + Beat Sheet Editor ✅ CURRENT
+
+**Goal:** Fix live site gaps vs mockup, add enterprise-grade observability, add visual beat sheet editor.
+
+### Commit 1 — Backend services + controller fixes
+- [ ] `controller/services/event_log.py` — Ring buffer event log (200 events, typed, timestamped)
+- [ ] `controller/services/metrics.py` — Prometheus metrics at /metrics (prometheus_client)
+- [ ] `controller/services/mqtt_client.py` — Wildcard subscription for MQTT inspector, instrument publishes
+- [ ] `controller/engine/music_mode.py` — Skip clock sync for presets (2.1s → ~50ms), cache sync results 60s
+- [ ] `controller/engine/mode_engine.py` — Instrument tick with metrics, log events
+- [ ] `controller/api/routes.py` — Add /events, /mqtt/messages, /metrics endpoints
+- [ ] `controller/main.py` — Wire event_log, metrics
+- [ ] `controller/config.py` — LOG_FORMAT env var
+- [ ] `Dockerfile.controller` — Add prometheus_client
+
+### Commit 2 — Dashboard + Settings UI fixes
+- [ ] `web/static/js/app.js` — Fix renderPanels (clock sync), renderNodes (clock col, roles, warn-stripe, expandable detail), add renderAlerts, renderEvents, WS countdown timer
+- [ ] `web/static/css/style.css` — Event log styles, MQTT inspector styles, info grid styles, touch target fixes
+- [ ] `controller/templates/dashboard.html` — Add #alerts, #events sections
+- [ ] `controller/templates/settings.html` — MQTT inspector, event history, controller info grid
+- [ ] `controller/templates/direct.html` — Add morph effect, all-nodes broadcast
+
+### Commit 3 — Beat sheet visual editor
+- [ ] `web/static/js/editor.js` — Step sequencer grid, palette brush, cell click, YAML ↔ visual sync, beat CRUD, section markers, repeat/hold
+- [ ] `controller/templates/music.html` — Replace textarea with visual editor + code tab + metadata/timing fields
+- [ ] `web/static/css/style.css` — Editor grid styles, palette bar, section markers
+
+### Octolet repo
+- [ ] Add Prometheus ServiceMonitor for /metrics scraping
+- [ ] Update controller RBAC if needed for ConfigMap CRUD
+
+### Verify
+- Dashboard: alert banners, clock sync panel, full node table with roles + expandable detail
+- Music: preset play instant (<100ms), BPM/color inputs work, visual editor creates/edits/exports beat sheets
+- Settings: MQTT inspector shows live messages, event history with filters, controller info grid
+- `/metrics`: Prometheus scrape returns valid exposition format
+- Event log: every command appears with timestamp and target
+
+### Pause — audit UX, verify observability data quality, test editor on touchscreen
+
+---
+
+## Phase 4b: Event Overlays + Creative Modes
 
 **Goal:** Layered overlays, screensaver modes, Twingate integration.
 
