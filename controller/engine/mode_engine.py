@@ -41,6 +41,7 @@ class ModeEngine:
         self._foreground_mode = None
         self._active_mode_name = ""
         self._last_published: dict[str, dict] = {}
+        self._last_health: dict[str, dict] = {}
         self._tick_task: asyncio.Task | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
         self._stop_event = threading.Event()
@@ -76,6 +77,11 @@ class ModeEngine:
     def get_status_mode(self) -> StatusMode | None:
         return self._background_mode
 
+    def get_health_data(self) -> dict:
+        if self._background_mode:
+            return self._background_mode.get_node_health()
+        return self._last_health
+
     def get_music_mode(self) -> MusicMode | None:
         if isinstance(self._foreground_mode, MusicMode):
             return self._foreground_mode
@@ -104,6 +110,7 @@ class ModeEngine:
             return
 
         if self._background_mode:
+            self._last_health = dict(self._background_mode.get_node_health())
             await self._background_mode.stop()
             self._background_mode = None
         if self._foreground_mode:
@@ -219,11 +226,16 @@ class ModeEngine:
             for led in published.get("leds", []):
                 leds.append({"index": led["index"], "r": led["r"], "g": led["g"], "b": led["b"]})
             health = None
-            if self._background_mode:
-                h = self._background_mode.get_node_health().get(name)
-                if h:
+            health_data = self.get_health_data()
+            h = health_data.get(name)
+            if h:
+                if self._background_mode:
                     sev, color, effect, params = self._background_mode._compute_state(name, h)
-                    health = {"severity": sev, "cpu": h.get("cpu", 0), "memory": h.get("memory", 0), "disk": h.get("disk", 0)}
+                else:
+                    sev = "healthy" if h.get("up") else "critical"
+                    if h.get("cpu", 0) > 0.7 or h.get("memory", 0) > 0.7 or h.get("disk", 0) > 0.8:
+                        sev = "warning"
+                health = {"severity": sev, "cpu": h.get("cpu", 0), "memory": h.get("memory", 0), "disk": h.get("disk", 0)}
             nodes.append({
                 "name": name, "online": info.get("online", False),
                 "present": info.get("present", False), "leds": leds, "health": health,

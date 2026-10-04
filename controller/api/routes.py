@@ -39,7 +39,7 @@ async def get_status(request: Request) -> StatusResponse:
     registry = mqtt.get_node_registry()
     last_published = engine.get_last_published()
     status_mode = engine.get_status_mode()
-    health_data = status_mode.get_node_health() if status_mode else {}
+    health_data = engine.get_health_data()
 
     nodes = []
     for name, info in sorted(registry.items()):
@@ -52,22 +52,26 @@ async def get_status(request: Request) -> StatusResponse:
 
         health = None
         h = health_data.get(name)
-        if h and status_mode:
-            sm = status_mode
-            if sm:
-                sev, color, effect, params = sm._compute_state(name, h)
-                health = NodeHealth(
-                    name=name,
-                    up=h.get("up", False),
-                    cpu_usage=h.get("cpu", 0.0),
-                    memory_usage=h.get("memory", 0.0),
-                    disk_usage=h.get("disk", 0.0),
-                    k8s_ready=h.get("k8s_ready", False),
-                    severity=sev,
-                    color=list(color),
-                    effect=effect,
-                    effect_params=params,
-                )
+        if h:
+            if status_mode:
+                sev, color, effect, params = status_mode._compute_state(name, h)
+            else:
+                sev = "healthy" if h.get("up") else "critical"
+                if h.get("cpu", 0) > 0.7 or h.get("memory", 0) > 0.7 or h.get("disk", 0) > 0.8:
+                    sev = "warning"
+                color, effect, params = (0, 0, 0), "solid", {}
+            health = NodeHealth(
+                name=name,
+                up=h.get("up", False),
+                cpu_usage=h.get("cpu", 0.0),
+                memory_usage=h.get("memory", 0.0),
+                disk_usage=h.get("disk", 0.0),
+                k8s_ready=h.get("k8s_ready", False),
+                severity=sev,
+                color=list(color),
+                effect=effect,
+                effect_params=params,
+            )
 
         nodes.append(NodeStatus(
             name=name,

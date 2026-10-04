@@ -672,7 +672,14 @@ async function runClockCheck() {
   const panel = document.querySelector('.panel:last-child .panel-detail');
   if (panel) panel.textContent = 'checking...';
   await apiPost('/clock/check').catch(() => {});
-  setTimeout(async () => { const data = await apiGet('/status'); _lastStatusData = data; updateAllViews(data); }, 3000);
+  const fetchAndUpdate = async () => {
+    const data = await apiGet('/status');
+    if (!data) return false;
+    _lastStatusData = data;
+    updateAllViews(data);
+    return data.nodes?.some(n => n.device?.clock_skew_ms != null);
+  };
+  setTimeout(async () => { if (!await fetchAndUpdate()) setTimeout(fetchAndUpdate, 3000); }, 2000);
 }
 
 async function stopPlayback() { await apiPost('/songs/stop'); }
