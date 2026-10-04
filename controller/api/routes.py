@@ -296,6 +296,13 @@ async def get_mqtt_messages(request: Request, limit: int = 50) -> list[dict]:
     return mqtt.get_mqtt_messages(limit=limit)
 
 
+@router.post("/off")
+async def all_off(request: Request) -> dict:
+    mqtt = request.app.state.mqtt_client
+    mqtt.publish_to_all({"action": "off"})
+    return {"status": "off sent to all"}
+
+
 @router.post("/clock/check")
 async def clock_check(request: Request) -> dict:
     mqtt = request.app.state.mqtt_client

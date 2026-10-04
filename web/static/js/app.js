@@ -303,7 +303,13 @@ function updateDirectColors(nodes) {
 
 function hexToRgb(hex) { return { r: parseInt(hex.slice(1,3),16), g: parseInt(hex.slice(3,5),16), b: parseInt(hex.slice(5,7),16) }; }
 
+async function ensureDirectMode() {
+  const mode = _lastStatusData?.active_mode;
+  if (mode !== 'direct') await apiPost('/modes/active', { mode: 'direct' });
+}
+
 async function sendDirect(node, ledCount) {
+  await ensureDirectMode();
   const {r,g,b} = hexToRgb(document.getElementById(`color-${node}`).value);
   const effect = document.getElementById(`effect-${node}`).value;
   const leds = []; for (let i = 0; i < ledCount; i++) leds.push({ index: i, r, g, b });
@@ -311,6 +317,7 @@ async function sendDirect(node, ledCount) {
 }
 
 async function sendDirectAll() {
+  await ensureDirectMode();
   const {r,g,b} = hexToRgb(document.getElementById('color-all').value);
   const effect = document.getElementById('effect-all').value;
   await apiPost('/direct', { action: 'set', leds: [{ index: 0, r, g, b }, { index: 1, r, g, b }], effect, params: {} });
@@ -428,7 +435,7 @@ async function initDashboard() {
       <button class="btn" onclick="playPreset('flash')">Flash</button>
       <button class="btn" onclick="playPreset('police')">Police</button>
       <div class="action-sep"></div>
-      <button class="btn" onclick="apiPost('/direct',{action:'off'})">All off</button>`;
+      <button class="btn" onclick="apiPost('/off')">All off</button>`;
   }
 }
 
