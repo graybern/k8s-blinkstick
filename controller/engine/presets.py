@@ -54,6 +54,8 @@ def generate_preset(
         beats = ["X" * n, "." * n, "X" * n, "." * n, "X" * n, "." * n, "X" * n, "." * n]
 
     elif name == "police":
+        palette["X"] = "#FF0000"
+        palette["Y"] = "#0000FF"
         left = "X" * (n // 2) + "." * (n - n // 2)
         right = "." * (n // 2) + "Y" * (n - n // 2)
         beats = [left, right, left, right, left, right, left, right]

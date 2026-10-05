@@ -148,6 +148,7 @@ function updateAllViews(data) {
     renderAlerts(document.getElementById('alerts'), data.nodes);
     renderPanels(document.getElementById('panels'), data);
     renderNodes(document.getElementById('nodes'), data.nodes);
+    updateAllOffButton(data.nodes);
   }
   if (data.playback !== undefined) {
     renderNowPlaying(document.getElementById('now-playing'), data.playback);
@@ -765,18 +766,22 @@ async function initDashboard() {
       <button class="btn" data-preset="flash" onclick="playPreset('flash')">Flash</button>
       <button class="btn" data-preset="police" onclick="playPreset('police')">Police</button>
       <div class="action-sep"></div>
-      <button class="btn" onclick="allOff(this)">All off</button>`;
+      <button class="btn" data-action="all-off" onclick="allOff(this)">All off</button>`;
   }
+}
+
+function updateAllOffButton(nodes) {
+  const btn = document.querySelector('[data-action="all-off"]');
+  if (!btn) return;
+  const allOff = nodes?.filter(n => n.present).every(n =>
+    !n.leds?.length || n.leds.every(l => l.r === 0 && l.g === 0 && l.b === 0)
+  );
+  btn.classList.toggle('danger', !!allOff);
 }
 
 async function allOff(btn) {
   await apiPost('/off');
   closeLedPopover();
-  if (btn) {
-    btn.classList.add('danger');
-    btn.textContent = 'Off';
-    setTimeout(() => { btn.classList.remove('danger'); btn.textContent = 'All off'; }, 1000);
-  }
 }
 
 // ── Global init (runs on every page) ──
