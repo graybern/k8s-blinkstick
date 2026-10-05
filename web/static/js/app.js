@@ -141,6 +141,7 @@ function updateWsTimer() {
 // ── Global update dispatcher ──
 
 function updateAllViews(data) {
+  if (!data.active_mode && data.mode) data.active_mode = data.mode;
   if (data.nodes) {
     renderLEDStrip(document.getElementById('led-strip'), data.nodes);
     renderAlerts(document.getElementById('alerts'), data.nodes);
@@ -705,9 +706,9 @@ async function runClockCheck() {
 async function stopPlayback() { await apiPost('/songs/stop'); }
 
 function updatePresetButtons(playback) {
+  const activeSong = playback?.playing ? playback.song : null;
   document.querySelectorAll('[data-preset]').forEach(btn => {
-    const isActive = playback?.playing && playback.song === btn.dataset.preset;
-    btn.classList.toggle('primary', isActive);
+    btn.classList.toggle('primary', btn.dataset.preset === activeSong);
   });
 }
 
