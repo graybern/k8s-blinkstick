@@ -31,6 +31,8 @@ class MusicMode:
         self._beat_count = 0
         self._beat_ms = 500
         self._on_end = "status"
+        self._node_beats: dict[str, list[dict]] = {}
+        self._loop = False
         self._last_sync: dict[str, float] = {}
         self._last_sync_time: float = 0
 
@@ -60,6 +62,23 @@ class MusicMode:
             elapsed=elapsed,
         )
 
+    def get_current_led_state(self) -> dict[str, dict] | None:
+        if not self._playing or not self._started_at or not self._node_beats:
+            return None
+        elapsed = time.time() - self._started_at
+        if elapsed < 0:
+            return None
+        beat_index = int(elapsed / (self._beat_ms / 1000))
+        if beat_index >= self._beat_count:
+            if not self._loop:
+                return None
+            beat_index = beat_index % self._beat_count
+        state = {}
+        for node, beats in self._node_beats.items():
+            if beat_index < len(beats):
+                state[node] = beats[beat_index]
+        return state if state else None
+
     async def play_song(self, name: str) -> dict:
         sheet = self._store.get_song(name)
         if not sheet:
@@ -78,6 +97,7 @@ class MusicMode:
         for node in active:
             self._mqtt.publish_to_node_raw(node, {"action": "stop_sequence"})
         self._playing = False
+        self._node_beats = {}
         song = self._current_song
         self._current_song = None
         self._started_at = None
@@ -119,6 +139,8 @@ class MusicMode:
             })
 
         flat_beats = next(iter(node_beats.values()), [])
+        self._node_beats = node_beats
+        self._loop = bool(loop)
         self._playing = True
         self._current_song = sheet.metadata.name
         self._started_at = start_at

@@ -220,10 +220,12 @@ class ModeEngine:
             return
         registry = self._mqtt.get_node_registry()
         health_data = self.get_health_data()
+        music = self.get_music_mode()
+        music_state = music.get_current_led_state() if music else None
         nodes = []
         for name, info in sorted(registry.items()):
             leds = []
-            published = self._last_published.get(name, {})
+            published = (music_state or {}).get(name) or self._last_published.get(name, {})
             for led in published.get("leds", []):
                 leds.append({"index": led["index"], "r": led["r"], "g": led["g"], "b": led["b"]})
             health = None
