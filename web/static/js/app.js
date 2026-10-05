@@ -585,7 +585,9 @@ function renderNodes(container, nodes) {
     if (ledsMini) {
       const minis = ledsMini.querySelectorAll('.led-mini');
       (node.leds || []).forEach((led, i) => {
-        if (i < minis.length) minis[i].style.background = `rgb(${led.r},${led.g},${led.b})`;
+        if (i >= minis.length) return;
+        minis[i].style.background = `rgb(${led.r},${led.g},${led.b})`;
+        minis[i].classList.toggle('led-mini-off', led.r === 0 && led.g === 0 && led.b === 0);
       });
     }
 
@@ -711,6 +713,8 @@ async function initDashboard() {
 
   const events = await apiGet('/events?limit=10');
   if (events) renderEvents(document.getElementById('events'), events);
+
+  apiPost('/clock/check').catch(() => {});
 
   const actions = document.getElementById('actions');
   if (actions) {

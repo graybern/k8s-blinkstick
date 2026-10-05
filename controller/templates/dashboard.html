@@ -2,8 +2,9 @@
 {% set page = "dashboard" %}
 {% block title %}Dashboard — BlinkStick{% endblock %}
 {% block content %}
-<div class="panels" id="panels"></div>
+<div class="action-bar" id="actions"></div>
 <div class="now-playing" id="now-playing" hidden></div>
+<div class="panels" id="panels"></div>
 <section class="node-section" id="nodes"></section>
 
 <!-- Inline mode switcher (popover) -->
@@ -11,8 +12,6 @@
   <div class="section-head"><span class="section-title">Switch Mode</span><button class="alert-dismiss" onclick="document.getElementById('mode-popover').hidden=true">&times;</button></div>
   <div id="mode-cards"></div>
 </div>
-
-<div class="action-bar" id="actions"></div>
 <section class="event-log">
   <div class="section-head"><span class="section-title">Activity</span></div>
   <div class="event-list" id="events"><div class="empty-state">Loading events...</div></div>

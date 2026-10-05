@@ -128,6 +128,7 @@ body {
   opacity: 0.6; transition: opacity 80ms;
 }
 .alert-dismiss:hover { opacity: 1; }
+.alert-dismiss:active { opacity: 1; transform: scale(0.9); transition: transform 0ms; }
 
 /* ── LED Strip ── */
 .led-section { padding: 24px 0 16px; }
@@ -146,7 +147,7 @@ body {
 .led.red { background: #ef4444; box-shadow: 0 0 12px 3px rgba(239,68,68,0.5), 0 0 32px 8px rgba(239,68,68,0.1); }
 .led.blue { background: #6366f1; box-shadow: 0 0 10px 3px rgba(99,102,241,0.4); }
 .led.off { background: var(--border); box-shadow: none; }
-.led.led-off { background: var(--border); box-shadow: none; opacity: 0.15; }
+.led.led-off { background: var(--raised); box-shadow: none; opacity: 0.35; border: 2px dashed var(--muted); }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
 .led.breathe { animation: breathe 3s ease-in-out infinite; }
 .node-label { font-size: 10px; color: var(--dim); letter-spacing: 0.04em; }
@@ -175,6 +176,7 @@ body {
   display: flex; align-items: center; min-height: 32px; min-width: 32px; justify-content: center;
 }
 .pop-close:hover { color: var(--text); }
+.pop-close:active { color: var(--accent); transition: color 0ms; }
 .pop-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .pop-row label { font-size: 11px; color: var(--dim); min-width: 40px; }
 .pop-row input[type="color"] { min-height: 36px; min-width: 44px; border: 1px solid var(--border); border-radius: 4px; padding: 2px; cursor: pointer; background: var(--surface); }
@@ -263,6 +265,7 @@ body {
 .dot.off { background: var(--muted); }
 .node-leds-mini { display: flex; gap: 3px; justify-content: center; }
 .led-mini { width: 8px; height: 8px; border-radius: 50%; }
+.led-mini.led-mini-off { opacity: 0.3; border: 1px dashed var(--muted); }
 .val { font-size: 11px; color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; }
 .val.hot { color: var(--warning); font-weight: 500; }
 .no-device-label { font-size: 10px; color: var(--muted); grid-column: 2 / -1; }
@@ -275,7 +278,7 @@ body {
 .detail-item span { display: block; color: var(--dim); font-weight: 500; margin-top: 1px; }
 
 /* ── Actions ── */
-.action-bar { display: flex; gap: 6px; padding: 8px 0 28px; flex-wrap: wrap; align-items: center; }
+.action-bar { display: flex; gap: 6px; padding: 8px 0 16px; flex-wrap: wrap; align-items: center; justify-content: center; }
 .action-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
 .btn {
   padding: 0 16px; height: 44px;
