@@ -146,6 +146,8 @@ LED assignment strategies per mode: `unified` (both LEDs same), `split` (LED 0 =
 - **apiGet returns null on error**: all callers must null-guard. `apiGet` shows a toast automatically on failure.
 - **js-yaml CDN**: loaded in `music.html` only (`cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js`). `editor.js` checks `window.jsyaml` and falls back to JSON.
 - **No prompt()/alert()/confirm()**: use inline forms + `showToast()` instead. Blocking dialogs freeze the WS connection.
+- **LED popover for direct control**: click any LED circle → inline popover with per-LED color pickers + effect dropdown. Auto-switches to direct mode. No separate Direct Control section — the LED strip is both status display and control surface. Popover closes on Escape, click outside, or same-node click.
+- **Health data persists across modes**: `ModeEngine.get_health_data()` returns live data when status mode is active, cached snapshot when it's not. Dashboard shows last-known metrics in direct/music mode instead of "--".
 
 ### Music Mode
 

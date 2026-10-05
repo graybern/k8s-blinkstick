@@ -20,11 +20,13 @@ Agents publish their device state (present, serial, LED count) to MQTT. The cont
 
 The controller serves a web UI at the ingress root, designed for both an 800x480 Pi touchscreen and desktop browsers.
 
-**Three pages**: Dashboard (LED visualization + health + mode switching + direct control), Music (song library + presets + beat sheet editor), Settings (MQTT inspector + event history + system info).
+**Three pages**: Dashboard (LED visualization + health + mode switching), Music (song library + presets + beat sheet editor), Settings (MQTT inspector + event history + system info).
+
+**LED strip as control surface**: the global LED visualization doubles as the direct control interface. Click any LED circle to open an inline popover with per-LED color pickers and effect selector — the system auto-switches to direct mode. Works on all pages.
 
 **Five themes**: System, Light, Dark, Midnight, Terminal — persisted to localStorage, selectable from the nav bar.
 
-**Live updates**: WebSocket at `/ws/live` pushes node state, health, and playback info at up to 10 updates/sec. Polling fallback (3s) activates automatically when WebSocket is unavailable. The LED strip is visible on every page.
+**Live updates**: WebSocket at `/ws/live` pushes node state, health, and playback info at up to 10 updates/sec. Polling fallback (3s) activates automatically when WebSocket is unavailable. Health metrics persist across mode switches — the dashboard shows last-known values even in direct or music mode.
 
 ## Supported Devices
 
@@ -350,7 +352,7 @@ controller/
   templates/          # Jinja2 templates (base, dashboard, music, settings)
 web/static/
   css/style.css       # 5-theme design system (Playwright-audited)
-  js/app.js           # WebSocket + polling fallback, LED rendering, mode/direct controls, events
+  js/app.js           # WebSocket + polling fallback, LED rendering + popover controls, mode switching, events
   js/editor.js        # Beat sheet visual editor (step sequencer grid)
   fonts/              # Self-hosted JetBrains Mono woff2
 Dockerfile.agent      # Agent image (Alpine + blinkstick + pyusb)
