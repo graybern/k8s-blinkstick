@@ -406,6 +406,10 @@ See [TODO.md](TODO.md) for the full phased plan.
 - **UX Quality Pass** — 30-commit polish session: DOM refactor, LED popovers, live music viz, editor tools (fill row/column, drag paint, undo, move beats), Patterns rename (complete)
 - **Phase 4b** — Event Overlays + Creative Modes (Twingate, ArgoCD, Knight Rider)
 
+## Acknowledgements
+
+This project is built on the [BlinkStick](https://www.blinkstick.com/) platform by Arvydas Juskevicius. The agent uses the [blinkstick-python](https://arvydas.github.io/blinkstick-python/) library for USB device control. See the full list of [BlinkStick API implementations](https://www.blinkstick.com/help/api-implementations) for other language bindings.
+
 ## License
 
 MIT
