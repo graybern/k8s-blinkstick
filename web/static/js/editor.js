@@ -13,6 +13,7 @@ const Editor = {
       return;
     }
     this.data = this._defaultSheet();
+    this.brush = Object.keys(this.data.palette)[0] || null;
     this.renderGrid();
     this.renderPalette();
   },
@@ -34,6 +35,8 @@ const Editor = {
   renderGrid() {
     const container = document.getElementById('editor-grid');
     if (!container) return;
+    const oldWrap = container.querySelector('.grid-wrap');
+    const scrollPos = oldWrap ? oldWrap.scrollTop : 0;
     const nodeOrder = this.data.node_order;
     const n = nodeOrder.length;
 
@@ -94,6 +97,10 @@ const Editor = {
 
     html += '</div></div>';
     container.innerHTML = html;
+    requestAnimationFrame(() => {
+      const newWrap = container.querySelector('.grid-wrap');
+      if (newWrap) newWrap.scrollTop = scrollPos;
+    });
   },
 
   renderPalette() {
@@ -115,7 +122,7 @@ const Editor = {
   // ── Cell interaction ──
 
   clickCell(beatIdx, nodeIdx, ledIdx) {
-    if (!this.brush) return;
+    if (!this.brush) { showToast('Select a color from the palette first'); return; }
     const expanded = this._expandBeats();
     const beat = expanded[beatIdx];
     if (!beat || beat.type) return;
@@ -173,6 +180,10 @@ const Editor = {
     const cells = Array.from({length: n}, () => Array.from({length: leds}, () => '#000000'));
     this._expandBeats().push({ cells });
     this.renderGrid();
+    requestAnimationFrame(() => {
+      const wrap = document.querySelector('.grid-wrap');
+      if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    });
   },
 
   dupBeat(idx) {
