@@ -2,26 +2,29 @@
 {% set page = "music" %}
 {% block title %}Patterns — BlinkStick{% endblock %}
 {% block content %}
-<h2>Quick Patterns</h2>
+<h2>Built-in Patterns</h2>
 <div class="action-bar">
-  <button class="btn primary" onclick="playPreset('chase')">Chase</button>
-  <button class="btn" onclick="playPreset('alternate')">Alternate</button>
-  <button class="btn" onclick="playPreset('rainbow')">Rainbow</button>
-  <button class="btn" onclick="playPreset('flash')">Flash</button>
-  <button class="btn" onclick="playPreset('police')">Police</button>
+  <button class="btn" onclick="setMode('status')">Status</button>
   <div class="action-sep"></div>
+  <button class="btn" data-preset="chase" onclick="playPreset('chase')">Chase</button>
+  <button class="btn" data-preset="alternate" onclick="playPreset('alternate')">Alternate</button>
+  <button class="btn" data-preset="rainbow" onclick="playPreset('rainbow')">Rainbow</button>
+  <button class="btn" data-preset="flash" onclick="playPreset('flash')">Flash</button>
+  <button class="btn" data-preset="police" onclick="playPreset('police')">Police</button>
+  <div class="action-sep"></div>
+  <button class="btn" data-action="all-off" onclick="allOff(this)">All off</button>
   <button class="btn danger" onclick="stopPlayback()">Stop</button>
 </div>
-<div class="form-row">
-  <div class="form-group">
+<div class="form-row" style="justify-content:center">
+  <div class="form-group" style="flex:0;min-width:80px">
     <label for="preset-bpm">BPM</label>
     <input type="number" id="preset-bpm" value="120" min="20" max="300">
   </div>
-  <div class="form-group">
+  <div class="form-group" style="flex:0;min-width:60px">
     <label for="preset-color">Color</label>
     <input type="color" id="preset-color" value="#00ff00">
   </div>
-  <div class="form-group">
+  <div class="form-group" style="flex:0;min-width:60px">
     <label for="preset-color2">Color 2</label>
     <input type="color" id="preset-color2" value="#0000ff">
   </div>
@@ -30,7 +33,7 @@
 <div class="now-playing" id="now-playing" hidden></div>
 
 <h2>Pattern Library</h2>
-<div id="song-list"><div class="empty-state">Loading songs...</div></div>
+<div id="song-list"><div class="empty-state">Loading patterns...</div></div>
 
 <h2>Pattern Editor</h2>
 
@@ -89,7 +92,7 @@
 async function loadSongs() {
   const songs = await apiGet('/songs');
   const el = document.getElementById('song-list');
-  if (!songs?.length) { el.innerHTML = '<div class="empty-state">No songs yet — create one below or upload YAML</div>'; return; }
+  if (!songs?.length) { el.innerHTML = '<div class="empty-state">No patterns yet — create one below or upload YAML</div>'; return; }
   el.innerHTML = songs.map(s => `
     <div class="song-item">
       <span class="song-name">${s.title || s.name}</span>

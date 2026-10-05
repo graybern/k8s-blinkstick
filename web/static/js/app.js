@@ -761,12 +761,16 @@ async function initDashboard() {
   const actions = document.getElementById('actions');
   if (actions) {
     actions.innerHTML = `
+      <button class="btn" onclick="setMode('status')">Status</button>
+      <div class="action-sep"></div>
       <button class="btn" data-preset="chase" onclick="playPreset('chase')">Chase</button>
+      <button class="btn" data-preset="alternate" onclick="playPreset('alternate')">Alternate</button>
       <button class="btn" data-preset="rainbow" onclick="playPreset('rainbow')">Rainbow</button>
       <button class="btn" data-preset="flash" onclick="playPreset('flash')">Flash</button>
       <button class="btn" data-preset="police" onclick="playPreset('police')">Police</button>
       <div class="action-sep"></div>
-      <button class="btn" data-action="all-off" onclick="allOff(this)">All off</button>`;
+      <button class="btn" data-action="all-off" onclick="allOff(this)">All off</button>
+      <button class="btn danger" onclick="stopPlayback()">Stop</button>`;
   }
 }
 
