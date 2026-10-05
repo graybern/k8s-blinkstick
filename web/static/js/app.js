@@ -154,6 +154,7 @@ function updateAllViews(data) {
     renderNowPlaying(document.getElementById('now-playing'), data.playback);
     updatePresetButtons(data.playback);
   }
+  renderOverlayBadge(document.getElementById('overlay-badge'), data.active_overlay, data.overlay_reason);
 
   const eventsEl = document.getElementById('events');
   if (eventsEl && Date.now() - _lastEventFetch > 3000) {
@@ -343,6 +344,17 @@ function dismissAlert(btn) {
   const banner = btn.parentElement;
   if (banner.dataset.alertId) _dismissedAlerts.add(banner.dataset.alertId);
   banner.remove();
+}
+
+function renderOverlayBadge(el, overlayName, overlayReason) {
+  if (!el) return;
+  if (!overlayName) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  el.dataset.overlay = overlayName;
+  el.innerHTML = `<span class="overlay-name">${overlayName}</span><span class="overlay-reason">${overlayReason || ''}</span>`;
 }
 
 function renderAlerts(container, nodes) {

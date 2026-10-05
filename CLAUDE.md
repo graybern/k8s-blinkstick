@@ -234,8 +234,11 @@ agent/
 Dockerfile.agent
 controller/
   main.py               # FastAPI app, lifespan, healthz/readyz
-  api/routes.py         # REST endpoints
+  config.py             # Environment variable parsing
+  api/routes.py         # REST endpoints (status, modes, songs, presets, overlays, metrics)
+  api/web_routes.py     # HTML page routes (/, /music, /settings)
   api/models.py         # Pydantic models
+  api/ws.py             # WebSocket connection manager
   engine/
     mode_engine.py      # Layered state machine + mode registry + overlay layer
     status_mode.py      # Background: Prometheus health
@@ -247,6 +250,7 @@ controller/
     temperature_mode.py # Background: thermal heatmap
     twingate_mode.py    # Event overlay: Loki connection log → cyan blink
     alert_mode.py       # Event overlay: AlertManager critical → red blink
+    presets.py          # Built-in pattern generators (chase, rainbow, etc.)
   services/
     mqtt_client.py
     prometheus.py        # httpx → Prometheus API + instance mapping
@@ -260,7 +264,8 @@ controller/
 web/static/
   css/style.css
   js/app.js
-  js/htmx.min.js
+  js/editor.js
+  fonts/              # Self-hosted JetBrains Mono woff2
 Dockerfile.controller
 .github/workflows/build.yml
 ```
@@ -272,7 +277,7 @@ Dockerfile.controller
 - **Fail safe** — No device? Noop. MQTT down? Keep last state. Controller crash? Status mode on restart.
 - **GitOps configs, runtime experiments** — Permanent configs in git (octolet repo). Quick experiments via web upload. Export to promote.
 - **Pin everything** — Exact versions for Python, blinkstick, pyusb, paho-mqtt. No floating deps.
-- **Simple stack** — No npm, no React, no ORM, no heavy K8s client. FastAPI + htmx + httpx.
+- **Simple stack** — No npm, no React, no ORM, no heavy K8s client. FastAPI + vanilla JS + httpx.
 - **The cluster's LEDs are the canvas** — Every mode should look intentional regardless of node count. The current deployment has 4 nodes x 2 LEDs = 8 LEDs, but the system scales to any number.
 - **Dynamic discovery** — The controller discovers nodes and LED counts from MQTT agent state, not config. Node count and LEDs-per-device are never hardcoded.
 - **Public repo — no secrets** — This repo is public. Never commit credentials, API keys, tokens, internal IPs, or cluster-specific secrets. Config references (service DNS, namespaces) are fine. Secrets belong in K8s Secrets on the cluster, never in code or config files here. Review every commit before pushing.

@@ -152,6 +152,13 @@ body {
 .led.breathe { animation: breathe 3s ease-in-out infinite; }
 .node-label { font-size: 10px; color: var(--dim); letter-spacing: 0.04em; }
 
+.overlay-badge { text-align: center; padding: 6px 16px; font-size: 12px; font-weight: 500; letter-spacing: 0.03em; border-radius: 6px; margin: 0 16px 8px; }
+.overlay-badge .overlay-name { text-transform: uppercase; font-size: 10px; opacity: 0.8; margin-right: 8px; }
+.overlay-badge .overlay-reason { font-weight: 400; }
+.overlay-badge[data-overlay="twingate-flash"] { background: rgba(0,255,255,0.15); color: #00ffff; border: 1px solid rgba(0,255,255,0.3); }
+.overlay-badge[data-overlay="deploy-wave"] { background: rgba(0,100,255,0.15); color: #4488ff; border: 1px solid rgba(0,100,255,0.3); }
+.overlay-badge[data-overlay="alert-escalation"] { background: rgba(255,0,0,0.15); color: #ff4444; border: 1px solid rgba(255,0,0,0.3); }
+
 .legend { display: flex; justify-content: center; gap: 16px; padding: 12px 0 0; font-size: 10px; color: var(--muted); }
 .legend-item { display: flex; align-items: center; gap: 5px; }
 .legend-dot { width: 6px; height: 6px; border-radius: 50%; }

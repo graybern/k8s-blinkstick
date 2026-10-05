@@ -326,6 +326,25 @@ async def clock_check(request: Request) -> dict:
     return {"status": "time_check sent"}
 
 
+@router.get("/overlays")
+async def get_overlays(request: Request) -> list[dict]:
+    engine = request.app.state.engine
+    return engine.get_overlay_services_state()
+
+
+@router.get("/overlays/active")
+async def get_active_overlay(request: Request) -> dict | None:
+    engine = request.app.state.engine
+    overlay = engine.get_active_overlay()
+    if not overlay:
+        return None
+    return {
+        "name": overlay["name"],
+        "reason": overlay["reason"],
+        "expires_at": overlay["expires_at"],
+    }
+
+
 @router.get("/metrics")
 async def prometheus_metrics():
     body, content_type = get_metrics_response()

@@ -244,6 +244,25 @@ class ModeEngine:
     def get_active_overlay(self) -> dict | None:
         return self._active_overlay
 
+    def get_overlay_services_state(self) -> list[dict]:
+        from controller.config import (
+            OVERLAY_TWINGATE_ENABLED, OVERLAY_DEPLOY_ENABLED, OVERLAY_ALERT_ENABLED,
+        )
+        flag_map = {
+            "twingate-flash": OVERLAY_TWINGATE_ENABLED,
+            "deploy-wave": OVERLAY_DEPLOY_ENABLED,
+            "alert-escalation": OVERLAY_ALERT_ENABLED,
+        }
+        active_name = self._active_overlay["name"] if self._active_overlay else None
+        return [
+            {
+                "name": svc.name,
+                "enabled": flag_map.get(svc.name, False),
+                "active": svc.name == active_name,
+            }
+            for svc in self._overlay_services
+        ]
+
     def _check_overlay_expiry(self):
         if not self._active_overlay:
             return

@@ -304,7 +304,13 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] Deploy Wave (ArgoCD Application watch → blue solid on Synced+Healthy transition)
 - [x] Alert Escalation (AlertManager API → red blink on critical, re-triggers to hold)
 
-### Polish
+### API + UI ✅ COMPLETE (2026-10-05)
+- [x] `GET /api/v1/overlays` — list overlay services with enabled/active state
+- [x] `GET /api/v1/overlays/active` — current overlay or null
+- [x] Overlay badge in dashboard (color-coded chip: cyan/blue/red, shows name + reason)
+- [x] MODE_DESCRIPTIONS for all 7 modes in mode popover
+
+### Polish (deferred to octolet repo)
 - [ ] Homepage integration (Ingress annotations in octolet)
 - [ ] Optional: Grafana dashboard for agent health
 
