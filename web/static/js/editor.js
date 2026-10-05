@@ -5,6 +5,7 @@ const Editor = {
   nodes: [],
   brush: null,
   mode: 'visual',
+  _undoStack: [],
 
   async init() {
     this.nodes = await apiGet('/nodes').then(ns => (ns || []).filter(n => n.present));
@@ -15,6 +16,7 @@ const Editor = {
     this.data = this._defaultSheet();
     this.brush = Object.keys(this.data.palette)[0] || null;
     document.addEventListener('mouseup', () => { Editor._painting = false; });
+    document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); Editor.undo(); } });
     this.renderGrid();
     this.renderPalette();
   },
@@ -82,7 +84,7 @@ const Editor = {
         html += '</div>';
       });
 
-      html += `<div class="grid-actions"><button title="Duplicate" onclick="Editor.dupBeat(${idx})">⧉</button><button title="Delete" onclick="Editor.delBeat(${idx})">×</button></div>`;
+      html += `<div class="grid-actions"><button title="Move up" onclick="Editor.moveBeat(${idx},-1)">↑</button><button title="Move down" onclick="Editor.moveBeat(${idx},1)">↓</button><button title="Duplicate" onclick="Editor.dupBeat(${idx})">⧉</button><button title="Clear row" onclick="Editor.clearRow(${idx})">○</button><button title="Delete" onclick="Editor.delBeat(${idx})">×</button></div>`;
       html += '</div>';
     });
 
@@ -144,6 +146,7 @@ const Editor = {
 
   startPaint(beatIdx, nodeIdx, ledIdx) {
     this._painting = true;
+    this._pushUndo();
     this.clickCell(beatIdx, nodeIdx, ledIdx);
   },
 
@@ -154,6 +157,7 @@ const Editor = {
 
   fillRow(beatIdx) {
     if (!this.brush) { showToast('Select a color from the palette first'); return; }
+    this._pushUndo();
     const expanded = this._expandBeats();
     const beat = expanded[beatIdx];
     if (!beat || beat.type) return;
@@ -208,6 +212,7 @@ const Editor = {
   // ── Beat CRUD ──
 
   addBeat() {
+    this._pushUndo();
     const n = this.data.node_order.length;
     const leds = this.nodes[0]?.leds || 2;
     const cells = Array.from({length: n}, () => Array.from({length: leds}, () => '#000000'));
@@ -220,6 +225,7 @@ const Editor = {
   },
 
   dupBeat(idx) {
+    this._pushUndo();
     const expanded = this._expandBeats();
     const beat = expanded[idx];
     if (!beat || beat.type) return;
@@ -229,10 +235,34 @@ const Editor = {
   },
 
   delBeat(idx) {
+    this._pushUndo();
     const expanded = this._expandBeats();
     if (expanded[idx]?.type) return;
     expanded.splice(idx, 1);
     this.renderGrid();
+  },
+
+  moveBeat(idx, dir) {
+    this._pushUndo();
+    const expanded = this._expandBeats();
+    const target = idx + dir;
+    if (target < 0 || target >= expanded.length) return;
+    if (expanded[idx]?.type || expanded[target]?.type) return;
+    [expanded[idx], expanded[target]] = [expanded[target], expanded[idx]];
+    this.renderGrid();
+  },
+
+  clearRow(beatIdx) {
+    this._pushUndo();
+    const expanded = this._expandBeats();
+    const beat = expanded[beatIdx];
+    if (!beat || beat.type) return;
+    if (!beat.cells) return;
+    beat.cells.forEach(node => { node.forEach((_, li) => { node[li] = '#000000'; }); });
+    document.querySelectorAll(`[data-beat="${beatIdx}"]`).forEach(cell => {
+      cell.style.background = '#000000';
+      cell.style.boxShadow = '';
+    });
   },
 
   addSection() {
@@ -361,6 +391,19 @@ const Editor = {
 
   _invalidateCache() {
     this._expandedCache = null;
+  },
+
+  _pushUndo() {
+    const snapshot = JSON.stringify(this._expandBeats());
+    this._undoStack.push(snapshot);
+    if (this._undoStack.length > 20) this._undoStack.shift();
+  },
+
+  undo() {
+    if (!this._undoStack.length) { showToast('Nothing to undo'); return; }
+    this._expandedCache = JSON.parse(this._undoStack.pop());
+    this.renderGrid();
+    this.renderPalette();
   },
 
   // ── YAML sync ──
