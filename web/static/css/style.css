@@ -418,6 +418,7 @@ label { font-size: 11px; color: var(--dim); display: block; margin-bottom: 4px; 
 .grid-header { display: table-row; }
 .grid-header-cell { display: table-cell; text-align: center; padding: 4px 6px; font-size: 10px; color: var(--dim); letter-spacing: 0.04em; vertical-align: bottom; }
 .grid-header-cell .sub { font-size: 8px; color: var(--muted); display: block; }
+.grid-header-cell:hover { color: var(--accent); }
 .grid-row { display: table-row; }
 .grid-row:hover .grid-cell { background: var(--raised); }
 .grid-num { display: table-cell; vertical-align: middle; padding: 4px 8px; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; white-space: nowrap; cursor: pointer; }

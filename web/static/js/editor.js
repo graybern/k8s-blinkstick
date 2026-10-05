@@ -46,11 +46,11 @@ const Editor = {
     let html = '<div class="grid-wrap"><div class="grid">';
     // Header
     html += '<div class="grid-header"><div class="grid-header-cell"></div>';
-    nodeOrder.forEach(name => {
+    nodeOrder.forEach((name, ni) => {
       const short = name.replace('octolet-', '');
       const leds = this.nodes.find(nd => nd.name === name)?.leds || 2;
       const sub = Array.from({length: leds}, (_, i) => `L${i}`).join(' ');
-      html += `<div class="grid-header-cell">${short}<span class="sub">${sub}</span></div>`;
+      html += `<div class="grid-header-cell" onclick="Editor.fillColumn(${ni})" title="Click to fill column" style="cursor:pointer">${short}<span class="sub">${sub}</span></div>`;
     });
     html += '<div class="grid-header-cell"></div></div>';
 
@@ -263,6 +263,31 @@ const Editor = {
       cell.style.background = '#000000';
       cell.style.boxShadow = '';
     });
+  },
+
+  fillColumn(nodeIdx) {
+    if (!this.brush) { showToast('Select a color from the palette first'); return; }
+    this._pushUndo();
+    const expanded = this._expandBeats();
+    const color = this.data.palette[this.brush] || '#000000';
+    const leds = this.nodes[nodeIdx]?.leds || 2;
+    expanded.forEach((beat, idx) => {
+      if (beat.type) return;
+      if (!beat.cells) beat.cells = [];
+      if (!beat.cells[nodeIdx]) beat.cells[nodeIdx] = [];
+      for (let li = 0; li < leds; li++) beat.cells[nodeIdx][li] = color;
+    });
+    this.renderGrid();
+  },
+
+  clearAll() {
+    this._pushUndo();
+    const expanded = this._expandBeats();
+    expanded.forEach(beat => {
+      if (beat.type || !beat.cells) return;
+      beat.cells.forEach(node => { node.forEach((_, li) => { node[li] = '#000000'; }); });
+    });
+    this.renderGrid();
   },
 
   addSection() {
