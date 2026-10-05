@@ -219,6 +219,7 @@ class ModeEngine:
         if not self._broadcast_fn or not self._main_loop:
             return
         registry = self._mqtt.get_node_registry()
+        health_data = self.get_health_data()
         nodes = []
         for name, info in sorted(registry.items()):
             leds = []
@@ -226,7 +227,6 @@ class ModeEngine:
             for led in published.get("leds", []):
                 leds.append({"index": led["index"], "r": led["r"], "g": led["g"], "b": led["b"]})
             health = None
-            health_data = self.get_health_data()
             h = health_data.get(name)
             if h:
                 if self._background_mode:
@@ -235,17 +235,32 @@ class ModeEngine:
                     sev = "healthy" if h.get("up") else "critical"
                     if h.get("cpu", 0) > 0.7 or h.get("memory", 0) > 0.7 or h.get("disk", 0) > 0.8:
                         sev = "warning"
-                health = {"severity": sev, "cpu": h.get("cpu", 0), "memory": h.get("memory", 0), "disk": h.get("disk", 0)}
+                health = {
+                    "severity": sev,
+                    "cpu_usage": h.get("cpu", 0),
+                    "memory_usage": h.get("memory", 0),
+                    "disk_usage": h.get("disk", 0),
+                }
             nodes.append({
-                "name": name, "online": info.get("online", False),
-                "present": info.get("present", False), "leds": leds, "health": health,
+                "name": name,
+                "online": info.get("online", False),
+                "present": info.get("present", False),
+                "device": {
+                    "present": info.get("present", False),
+                    "serial": info.get("serial"),
+                    "leds": info.get("leds", 0),
+                    "last_seen": info.get("last_seen"),
+                    "clock_skew_ms": self._mqtt.get_clock_skew(name),
+                },
+                "leds": leds,
+                "health": health,
             })
         playback = None
         music = self.get_music_mode()
         if music:
             ps = music.get_playback_state()
             playback = {"playing": ps.playing, "song": ps.song, "beat_index": ps.beat_index, "total_beats": ps.total_beats, "elapsed": ps.elapsed}
-        data = {"nodes": nodes, "mode": self._active_mode_name, "playback": playback}
+        data = {"nodes": nodes, "active_mode": self._active_mode_name, "playback": playback}
         try:
             asyncio.run_coroutine_threadsafe(self._broadcast_fn(data), self._main_loop)
         except Exception:
