@@ -293,6 +293,12 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] Breathing (CPU-proportional sine pulse, green→amber, Prometheus poll)
 - [x] Temperature Heatmap (CPU temp → blue/green/yellow/red spectrum, Prometheus poll)
 
+### Service clients ✅ COMPLETE (2026-10-05)
+- [x] LokiClient (query, query_range — httpx, graceful degradation)
+- [x] AlertManagerClient (get_alerts, get_firing_critical — httpx, graceful degradation)
+- [x] K8sClient.list_applications() for ArgoCD Application watch
+- [x] Deps dict expanded: loki, alertmanager, k8s wired into ModeEngine
+
 ### Event overlays
 - [ ] Twingate Connection (Loki log query → cyan flash on connect)
 - [ ] Deploy Wave (ArgoCD Application watch → sweep on sync)

@@ -61,11 +61,15 @@ register_mode("temperature", lambda deps: TemperatureMode(deps["prometheus"], de
 
 class ModeEngine:
     def __init__(self, mqtt_client: MQTTClient, prometheus: PrometheusClient,
-                 song_store: SongStore | None = None, event_log: EventLog | None = None):
+                 song_store: SongStore | None = None, event_log: EventLog | None = None,
+                 loki=None, alertmanager=None, k8s=None):
         self._mqtt = mqtt_client
         self._prometheus = prometheus
         self._song_store = song_store
         self._event_log = event_log
+        self._loki = loki
+        self._alertmanager = alertmanager
+        self._k8s = k8s
         self._background_mode: StatusMode | None = None
         self._foreground_mode = None
         self._active_mode_name = ""
@@ -101,6 +105,9 @@ class ModeEngine:
             "mqtt": self._mqtt,
             "prometheus": self._prometheus,
             "song_store": self._song_store,
+            "loki": self._loki,
+            "alertmanager": self._alertmanager,
+            "k8s": self._k8s,
         }
 
     def get_available_modes(self) -> list[dict]:

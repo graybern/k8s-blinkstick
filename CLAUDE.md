@@ -249,9 +249,13 @@ controller/
     alert_mode.py       # Event overlay: AlertManager
   services/
     mqtt_client.py
-    prometheus.py
-    loki.py
-    k8s.py
+    prometheus.py        # httpx → Prometheus API + instance mapping
+    loki.py              # httpx → Loki API (query, query_range)
+    alertmanager.py      # httpx → AlertManager API (alerts, firing critical)
+    k8s.py               # httpx → K8s API (ConfigMaps, ArgoCD Applications)
+    song_store.py
+    event_log.py
+    metrics.py
   templates/
 web/static/
   css/style.css

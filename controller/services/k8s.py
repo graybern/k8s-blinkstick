@@ -126,6 +126,20 @@ class K8sClient:
             log.exception("Failed to delete ConfigMap %s/%s", namespace, name)
             return False
 
+    async def list_applications(self, namespace: str = "argocd") -> list[dict]:
+        client = self._get_client()
+        if not client:
+            return []
+        try:
+            resp = await client.get(
+                f"/apis/argoproj.io/v1alpha1/namespaces/{namespace}/applications",
+            )
+            resp.raise_for_status()
+            return resp.json().get("items", [])
+        except Exception:
+            log.exception("Failed to list ArgoCD Applications in %s", namespace)
+            return []
+
     async def close(self):
         if self._client:
             await self._client.aclose()

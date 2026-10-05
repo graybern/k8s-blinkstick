@@ -352,8 +352,10 @@ controller/
     presets.py        # Built-in pattern generators (chase, rainbow, etc.)
   services/
     mqtt_client.py    # MQTT publisher + state subscriber + clock sync + inspector
-    prometheus.py     # httpx → Prometheus API
-    k8s.py            # K8s API client (SA token + httpx + ConfigMap CRUD)
+    prometheus.py     # httpx → Prometheus API (health, temperature)
+    loki.py           # httpx → Loki API (query, query_range)
+    alertmanager.py   # httpx → AlertManager API (alerts, firing critical)
+    k8s.py            # K8s API client (SA token + httpx + ConfigMap CRUD + ArgoCD)
     song_store.py     # ConfigMap-backed song cache with 30s polling
     event_log.py      # In-memory event ring buffer (200 events)
     metrics.py        # Prometheus metrics (counters, gauges, histograms)

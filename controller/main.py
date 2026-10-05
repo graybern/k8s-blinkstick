@@ -15,6 +15,8 @@ from controller.services.prometheus import PrometheusClient
 from controller.services.k8s import K8sClient
 from controller.services.song_store import SongStore
 from controller.services.event_log import EventLog
+from controller.services.loki import LokiClient
+from controller.services.alertmanager import AlertManagerClient
 from controller.engine.mode_engine import ModeEngine
 from controller.api.routes import router
 from controller.api.web_routes import web_router
@@ -99,13 +101,18 @@ def main():
     mqtt_client = MQTTClient(event_log=event_log)
     prometheus = PrometheusClient()
     k8s = K8sClient()
+    loki = LokiClient()
+    alertmanager = AlertManagerClient()
     song_store = SongStore(k8s)
-    engine = ModeEngine(mqtt_client, prometheus, song_store, event_log=event_log)
+    engine = ModeEngine(mqtt_client, prometheus, song_store, event_log=event_log,
+                        loki=loki, alertmanager=alertmanager, k8s=k8s)
 
     app.state.event_log = event_log
     app.state.mqtt_client = mqtt_client
     app.state.prometheus = prometheus
     app.state.k8s = k8s
+    app.state.loki = loki
+    app.state.alertmanager = alertmanager
     app.state.song_store = song_store
     app.state.engine = engine
 
