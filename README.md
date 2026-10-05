@@ -312,7 +312,9 @@ The dashboard renders alert banners when nodes exceed health thresholds. Warning
 - Dynamic node discovery from MQTT retained messages — no hardcoded node count
 - LED count per device read from agent state — works with Nano (2), Strip (8), or Pro (64)
 - Song store backed by Kubernetes ConfigMaps with 30s polling
-- WebSocket broadcast from engine tick loop via cross-thread dispatch
+- WebSocket broadcast from engine tick loop via cross-thread dispatch — 1 Hz normally, 5 Hz during music playback
+- Health data persists across mode switches — dashboard shows last-known metrics in direct/music mode
+- Live music visualization: engine computes current beat colors from the saved timetable and broadcasts them
 - Event log (200-event ring buffer) and MQTT inspector (100-message buffer) for observability
 - Prometheus metrics at `/api/v1/metrics` for scraping
 - In-memory state only — defaults to status mode on restart (fail-safe)
@@ -349,7 +351,7 @@ controller/
     song_store.py     # ConfigMap-backed song cache with 30s polling
     event_log.py      # In-memory event ring buffer (200 events)
     metrics.py        # Prometheus metrics (counters, gauges, histograms)
-  templates/          # Jinja2 templates (base, dashboard, music, settings)
+  templates/          # Jinja2 templates (base, dashboard, patterns, settings)
 web/static/
   css/style.css       # 5-theme design system (Playwright-audited)
   js/app.js           # WebSocket + polling fallback, LED rendering + popover controls, mode switching, events
