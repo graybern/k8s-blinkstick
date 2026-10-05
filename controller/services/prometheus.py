@@ -121,6 +121,22 @@ class PrometheusClient:
 
         return nodes
 
+    async def query_cpu_temperature(self) -> dict[str, float]:
+        results = await self._query('node_thermal_zone_temp{type="cpu-thermal"}')
+        if not results:
+            results = await self._query('node_hwmon_temp_celsius{chip=~".*thermal.*"}')
+        temps: dict[str, float] = {}
+        for r in results:
+            instance = r["metric"].get("instance", "")
+            node = self.resolve_node(instance)
+            if not node:
+                continue
+            try:
+                temps[node] = float(r["value"][1])
+            except (IndexError, ValueError, TypeError):
+                continue
+        return temps
+
     async def _query(self, promql: str) -> list[dict]:
         try:
             resp = await self._client.get(

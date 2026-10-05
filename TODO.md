@@ -287,11 +287,11 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] Prometheus: `blinkstick_overlay_triggers_total` counter by name
 - [x] `event_log` wired into ModeEngine constructor
 
-### Background modes
-- [ ] Knight Rider (scanner sweep)
-- [ ] Rainbow Wave (traveling hue rotation)
-- [ ] Breathing (CPU-proportional pulse)
-- [ ] Temperature Heatmap (CPU temp → color spectrum)
+### Background modes ✅ COMPLETE (2026-10-05)
+- [x] Knight Rider (red scanner sweep with trailing glow, 2s cycle, PHYSICAL_NODE_ORDER)
+- [x] Rainbow Wave (traveling hue rotation via colorsys.hsv_to_rgb, 5s cycle)
+- [x] Breathing (CPU-proportional sine pulse, green→amber, Prometheus poll)
+- [x] Temperature Heatmap (CPU temp → blue/green/yellow/red spectrum, Prometheus poll)
 
 ### Event overlays
 - [ ] Twingate Connection (Loki log query → cyan flash on connect)

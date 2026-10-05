@@ -11,6 +11,10 @@ from controller.services.event_log import EventLog
 from controller.services import metrics
 from controller.engine.status_mode import StatusMode
 from controller.engine.music_mode import MusicMode
+from controller.engine.knight_rider_mode import KnightRiderMode
+from controller.engine.rainbow_mode import RainbowMode
+from controller.engine.breathing_mode import BreathingMode
+from controller.engine.temperature_mode import TemperatureMode
 
 log = logging.getLogger(__name__)
 
@@ -49,6 +53,10 @@ class DirectMode:
 register_mode("status", lambda deps: StatusMode(deps["prometheus"], deps["mqtt"]), "background", "unified")
 register_mode("direct", lambda deps: DirectMode(), "foreground", "unified")
 register_mode("music", lambda deps: MusicMode(deps["mqtt"], deps["song_store"]), "foreground", "unified")
+register_mode("knight-rider", lambda deps: KnightRiderMode(deps["mqtt"]), "background", "unified")
+register_mode("rainbow-wave", lambda deps: RainbowMode(deps["mqtt"]), "background", "unified")
+register_mode("breathing", lambda deps: BreathingMode(deps["prometheus"], deps["mqtt"]), "background", "unified")
+register_mode("temperature", lambda deps: TemperatureMode(deps["prometheus"], deps["mqtt"]), "background", "unified")
 
 
 class ModeEngine:
@@ -105,10 +113,12 @@ class ModeEngine:
         return dict(self._last_published)
 
     def get_status_mode(self) -> StatusMode | None:
-        return self._background_mode
+        if isinstance(self._background_mode, StatusMode):
+            return self._background_mode
+        return None
 
     def get_health_data(self) -> dict:
-        if self._background_mode:
+        if self._background_mode and hasattr(self._background_mode, 'get_node_health'):
             return self._background_mode.get_node_health()
         return self._last_health
 
@@ -147,7 +157,8 @@ class ModeEngine:
             return
 
         if self._background_mode:
-            self._last_health = dict(self._background_mode.get_node_health())
+            if hasattr(self._background_mode, 'get_node_health'):
+                self._last_health = dict(self._background_mode.get_node_health())
             await self._background_mode.stop()
             self._background_mode = None
         if self._foreground_mode:
@@ -347,7 +358,7 @@ class ModeEngine:
             health = None
             h = health_data.get(name)
             if h:
-                if self._background_mode:
+                if isinstance(self._background_mode, StatusMode):
                     sev, color, effect, params = self._background_mode._compute_state(name, h)
                 else:
                     sev = "healthy" if h.get("up") else "critical"

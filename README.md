@@ -273,7 +273,7 @@ The dashboard renders alert banners when nodes exceed health thresholds. Warning
 | GET | `/healthz` | Liveness probe |
 | GET | `/readyz` | Readiness probe (503 if MQTT disconnected) |
 | GET | `/api/v1/status` | Node health + current LED state |
-| GET | `/api/v1/modes` | Available modes (status, direct, music) |
+| GET | `/api/v1/modes` | Available modes (7 total: status, direct, music, knight-rider, rainbow-wave, breathing, temperature) |
 | GET | `/api/v1/modes/active` | Current mode |
 | POST | `/api/v1/modes/active` | Switch mode |
 | POST | `/api/v1/direct` | Send LED command (direct mode only, else 409) |
@@ -309,7 +309,8 @@ The dashboard renders alert banners when nodes exceed health thresholds. Warning
 ### Controller
 
 - FastAPI app with engine running in a separate daemon thread (own asyncio event loop)
-- Layered mode engine: background (status), event overlay (Phase 4b), foreground (direct, music)
+- Layered mode engine: background (status, knight-rider, rainbow-wave, breathing, temperature), event overlay, foreground (direct, music)
+- Mode registry pattern: `register_mode()` factory with deps dict — new modes self-register
 - Dynamic node discovery from MQTT retained messages — no hardcoded node count
 - LED count per device read from agent state — works with Nano (2), Strip (8), or Pro (64)
 - Song store backed by Kubernetes ConfigMaps with 30s polling
@@ -341,9 +342,13 @@ controller/
     models.py         # Pydantic models (BeatSheet, NodeHealth, PlaybackState, etc.)
     ws.py             # WebSocket connection manager (ping/pong keepalive)
   engine/
-    mode_engine.py    # Layered state machine with WebSocket broadcast
+    mode_engine.py    # Layered state machine + mode registry + overlay layer
     status_mode.py    # Prometheus health → LED colors + effects
     music_mode.py     # Beat sheet player, NTP sync, preset generator
+    knight_rider_mode.py  # Red scanner sweep with trailing glow
+    rainbow_mode.py       # Traveling hue rotation across all LEDs
+    breathing_mode.py     # CPU-proportional pulse speed + color
+    temperature_mode.py   # CPU thermal heatmap (blue→green→yellow→red)
     presets.py        # Built-in pattern generators (chase, rainbow, etc.)
   services/
     mqtt_client.py    # MQTT publisher + state subscriber + clock sync + inspector

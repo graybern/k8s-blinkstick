@@ -121,7 +121,7 @@ The controller runs a layered mode engine:
 
 | Layer | Behavior | Examples |
 |-------|----------|----------|
-| **Background** | Continuous, steady-state | Status, Breathing, Temperature, Knight Rider, Rainbow |
+| **Background** | Continuous, steady-state | Status, Knight Rider, Rainbow Wave, Breathing, Temperature |
 | **Event overlay** | Brief 3-5s interrupts, fades back | Twingate Connection, Deploy Wave, Alert Escalation |
 | **Foreground** | Full takeover, explicit stop | Music, Direct Control |
 
@@ -237,12 +237,12 @@ controller/
   api/routes.py         # REST endpoints
   api/models.py         # Pydantic models
   engine/
-    mode_engine.py      # Layered state machine
+    mode_engine.py      # Layered state machine + mode registry + overlay layer
     status_mode.py      # Background: Prometheus health
     music_mode.py       # Foreground: beat sheet player
     breathing_mode.py   # Background: CPU-proportional pulse
-    knight_rider_mode.py
-    rainbow_mode.py
+    knight_rider_mode.py # Background: red scanner sweep
+    rainbow_mode.py     # Background: traveling hue rotation
     deploy_mode.py      # Event overlay: ArgoCD sync
     temperature_mode.py # Background: thermal heatmap
     twingate_mode.py    # Event overlay: connection flash

@@ -441,6 +441,10 @@ const MODE_DESCRIPTIONS = {
   status: 'Prometheus health → green breathing, amber warning, red critical',
   direct: 'Manual per-node LED control with color pickers',
   music: 'Synchronized beat sheet playback via NTP clock sync',
+  'knight-rider': 'Red scanner sweep with trailing glow across all nodes',
+  'rainbow-wave': 'Traveling hue rotation across all LEDs',
+  'breathing': 'CPU-proportional pulse — fast when busy, slow when idle',
+  'temperature': 'CPU thermal heatmap — blue cool, green warm, red hot',
 };
 
 async function toggleModePopover() {
