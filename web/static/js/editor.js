@@ -123,8 +123,13 @@ const Editor = {
     while (beat.cells.length <= nodeIdx) beat.cells.push([]);
     const leds = this.nodes[nodeIdx]?.leds || 2;
     while (beat.cells[nodeIdx].length < leds) beat.cells[nodeIdx].push('#000000');
-    beat.cells[nodeIdx][ledIdx] = this.data.palette[this.brush] || '#000000';
-    this.renderGrid();
+    const color = this.data.palette[this.brush] || '#000000';
+    beat.cells[nodeIdx][ledIdx] = color;
+    const cell = document.querySelector(`[data-beat="${beatIdx}"][data-node="${nodeIdx}"][data-led="${ledIdx}"]`);
+    if (cell) {
+      cell.style.background = color;
+      cell.style.boxShadow = color !== '#000000' ? `0 0 8px ${color}60` : '';
+    }
   },
 
   selectBrush(key) {
