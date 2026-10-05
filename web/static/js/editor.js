@@ -181,8 +181,8 @@ const Editor = {
     this._expandBeats().push({ cells });
     this.renderGrid();
     requestAnimationFrame(() => {
-      const wrap = document.querySelector('.grid-wrap');
-      if (wrap) wrap.scrollTop = wrap.scrollHeight;
+      const rows = document.querySelectorAll('.grid-row');
+      if (rows.length > 1) rows[rows.length - 2]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
   },
 
@@ -205,6 +205,7 @@ const Editor = {
   addSection() {
     const container = document.getElementById('editor-grid');
     if (!container || container.querySelector('.section-form')) return;
+    const target = container.querySelector('.grid-wrap') || container;
     const form = document.createElement('div');
     form.className = 'section-form';
     form.style.cssText = 'display:flex;gap:6px;align-items:center;padding:8px 0';
@@ -212,7 +213,8 @@ const Editor = {
       <input type="text" placeholder="Section name" style="width:160px;min-height:28px;padding:4px 8px;font-size:11px">
       <button class="btn" style="height:28px;font-size:10px" onclick="Editor.confirmAddSection()">Add</button>
       <button class="btn" style="height:28px;font-size:10px" onclick="this.parentElement.remove()">×</button>`;
-    container.appendChild(form);
+    target.appendChild(form);
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     const textInput = form.querySelector('input');
     textInput.focus();
     textInput.addEventListener('keydown', e => { if (e.key === 'Enter') Editor.confirmAddSection(); });
@@ -428,6 +430,7 @@ const Editor = {
     const detail = await apiGet(`/songs/${name}`);
     if (detail?.beat_sheet) {
       this.data = detail.beat_sheet;
+      this.brush = Object.keys(this.data.palette || {})[0] || null;
       this._invalidateCache();
       this.renderGrid();
       this.renderPalette();
