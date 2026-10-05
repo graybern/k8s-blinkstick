@@ -243,10 +243,10 @@ controller/
     breathing_mode.py   # Background: CPU-proportional pulse
     knight_rider_mode.py # Background: red scanner sweep
     rainbow_mode.py     # Background: traveling hue rotation
-    deploy_mode.py      # Event overlay: ArgoCD sync
+    deploy_mode.py      # Event overlay: ArgoCD sync → blue solid
     temperature_mode.py # Background: thermal heatmap
-    twingate_mode.py    # Event overlay: connection flash
-    alert_mode.py       # Event overlay: AlertManager
+    twingate_mode.py    # Event overlay: Loki connection log → cyan blink
+    alert_mode.py       # Event overlay: AlertManager critical → red blink
   services/
     mqtt_client.py
     prometheus.py        # httpx → Prometheus API + instance mapping

@@ -15,6 +15,9 @@ from controller.engine.knight_rider_mode import KnightRiderMode
 from controller.engine.rainbow_mode import RainbowMode
 from controller.engine.breathing_mode import BreathingMode
 from controller.engine.temperature_mode import TemperatureMode
+from controller.engine.twingate_mode import TwingateOverlay
+from controller.engine.deploy_mode import DeployOverlay
+from controller.engine.alert_mode import AlertOverlay
 
 log = logging.getLogger(__name__)
 
@@ -83,6 +86,7 @@ class ModeEngine:
         # Overlay state
         self._overlay_queue: deque[dict] = deque(maxlen=20)
         self._active_overlay: dict | None = None
+        self._overlay_services: list = []
 
     def set_loop(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
@@ -136,7 +140,7 @@ class ModeEngine:
 
     async def start(self, default_mode: str = "status"):
         await self.set_mode(default_mode)
-        self._start_overlay_services()
+        await self._start_overlay_services()
         self._tick_task = asyncio.create_task(self._tick_loop())
         log.info("Mode engine started with mode=%s", default_mode)
 
@@ -147,7 +151,7 @@ class ModeEngine:
                 await self._tick_task
             except asyncio.CancelledError:
                 pass
-        self._stop_overlay_services()
+        await self._stop_overlay_services()
         if self._background_mode:
             await self._background_mode.stop()
         if self._foreground_mode:
@@ -275,10 +279,21 @@ class ModeEngine:
                 merged[node]["_severity"] = cmd["_severity"]
         return merged
 
-    def _start_overlay_services(self):
-        log.info("Overlay services started (no pollers configured yet)")
+    async def _start_overlay_services(self):
+        overlays = [
+            TwingateOverlay(self, self._loki),
+            DeployOverlay(self, self._k8s),
+            AlertOverlay(self, self._alertmanager),
+        ]
+        for overlay in overlays:
+            await overlay.start()
+            self._overlay_services.append(overlay)
+        log.info("Overlay services started (%d active)", len(self._overlay_services))
 
-    def _stop_overlay_services(self):
+    async def _stop_overlay_services(self):
+        for overlay in self._overlay_services:
+            await overlay.stop()
+        self._overlay_services.clear()
         log.info("Overlay services stopped")
 
     # --- Tick Loop ---

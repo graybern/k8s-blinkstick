@@ -349,6 +349,9 @@ controller/
     rainbow_mode.py       # Traveling hue rotation across all LEDs
     breathing_mode.py     # CPU-proportional pulse speed + color
     temperature_mode.py   # CPU thermal heatmap (blue→green→yellow→red)
+    twingate_mode.py      # Overlay: Loki connection log → cyan blink
+    deploy_mode.py        # Overlay: ArgoCD sync → blue solid
+    alert_mode.py         # Overlay: AlertManager critical → red blink
     presets.py        # Built-in pattern generators (chase, rainbow, etc.)
   services/
     mqtt_client.py    # MQTT publisher + state subscriber + clock sync + inspector
@@ -412,7 +415,7 @@ See [TODO.md](TODO.md) for the full phased plan.
 - **Phase 3** — Web UI + Music Mode (complete)
 - **Phase 4a** — Observability + Beat Sheet Editor (complete)
 - **UX Quality Pass** — 30-commit polish session: DOM refactor, LED popovers, live music viz, editor tools (fill row/column, drag paint, undo, move beats), Patterns rename (complete)
-- **Phase 4b** — Event Overlays + Creative Modes: engine foundation with mode registry + overlay layer (complete), background modes and event overlay pollers (next)
+- **Phase 4b** — Event Overlays + Creative Modes (complete): mode registry, overlay layer, 4 background modes (knight-rider, rainbow-wave, breathing, temperature), 3 event overlays (Twingate, ArgoCD, AlertManager), Loki + AlertManager service clients
 
 ## Acknowledgements
 

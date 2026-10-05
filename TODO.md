@@ -299,10 +299,10 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] K8sClient.list_applications() for ArgoCD Application watch
 - [x] Deps dict expanded: loki, alertmanager, k8s wired into ModeEngine
 
-### Event overlays
-- [ ] Twingate Connection (Loki log query → cyan flash on connect)
-- [ ] Deploy Wave (ArgoCD Application watch → sweep on sync)
-- [ ] Alert Escalation (AlertManager API → red strobe on critical)
+### Event overlays ✅ COMPLETE (2026-10-05)
+- [x] Twingate Connection (Loki log query → cyan blink on `established_connection`, dedup by ms timestamp)
+- [x] Deploy Wave (ArgoCD Application watch → blue solid on Synced+Healthy transition)
+- [x] Alert Escalation (AlertManager API → red blink on critical, re-triggers to hold)
 
 ### Polish
 - [ ] Homepage integration (Ingress annotations in octolet)
