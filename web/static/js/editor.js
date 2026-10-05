@@ -14,6 +14,7 @@ const Editor = {
     }
     this.data = this._defaultSheet();
     this.brush = Object.keys(this.data.palette)[0] || null;
+    document.addEventListener('mouseup', () => { Editor._painting = false; });
     this.renderGrid();
     this.renderPalette();
   },
@@ -68,7 +69,7 @@ const Editor = {
       const holdBadge = beat.hold ? ` <span class="hold-badge">hold ${beat.hold}</span>` : '';
 
       html += '<div class="grid-row">';
-      html += `<div class="grid-num">${num}${repeatBadge}${holdBadge}</div>`;
+      html += `<div class="grid-num" onclick="Editor.fillRow(${idx})" title="Click to fill row">${num}${repeatBadge}${holdBadge}</div>`;
 
       nodeOrder.forEach((name, ni) => {
         const leds = this.nodes.find(nd => nd.name === name)?.leds || 2;
@@ -76,7 +77,7 @@ const Editor = {
         for (let li = 0; li < leds; li++) {
           const color = beat.cells?.[ni]?.[li] || '#000000';
           const glow = color !== '#000000' ? `box-shadow:0 0 8px ${color}60` : '';
-          html += `<span class="grid-led" style="background:${color};${glow}" data-beat="${idx}" data-node="${ni}" data-led="${li}" onclick="Editor.clickCell(${idx},${ni},${li})"></span>`;
+          html += `<span class="grid-led" style="background:${color};${glow}" data-beat="${idx}" data-node="${ni}" data-led="${li}" onmousedown="Editor.startPaint(${idx},${ni},${li})" onmouseover="Editor.dragPaint(${idx},${ni},${li})"></span>`;
         }
         html += '</div>';
       });
@@ -137,6 +138,38 @@ const Editor = {
       cell.style.background = color;
       cell.style.boxShadow = color !== '#000000' ? `0 0 8px ${color}60` : '';
     }
+  },
+
+  _painting: false,
+
+  startPaint(beatIdx, nodeIdx, ledIdx) {
+    this._painting = true;
+    this.clickCell(beatIdx, nodeIdx, ledIdx);
+  },
+
+  dragPaint(beatIdx, nodeIdx, ledIdx) {
+    if (!this._painting) return;
+    this.clickCell(beatIdx, nodeIdx, ledIdx);
+  },
+
+  fillRow(beatIdx) {
+    if (!this.brush) { showToast('Select a color from the palette first'); return; }
+    const expanded = this._expandBeats();
+    const beat = expanded[beatIdx];
+    if (!beat || beat.type) return;
+    if (!beat.cells) beat.cells = [];
+    const color = this.data.palette[this.brush] || '#000000';
+    const n = this.data.node_order.length;
+    for (let ni = 0; ni < n; ni++) {
+      if (!beat.cells[ni]) beat.cells[ni] = [];
+      const leds = this.nodes[ni]?.leds || 2;
+      for (let li = 0; li < leds; li++) beat.cells[ni][li] = color;
+    }
+    const glow = color !== '#000000' ? `0 0 8px ${color}60` : '';
+    document.querySelectorAll(`[data-beat="${beatIdx}"]`).forEach(cell => {
+      cell.style.background = color;
+      cell.style.boxShadow = glow;
+    });
   },
 
   selectBrush(key) {
