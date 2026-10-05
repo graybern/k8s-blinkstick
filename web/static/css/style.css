@@ -233,8 +233,9 @@ body {
 .node-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .node-header {
   display: grid; grid-template-columns: 1fr 34px 52px 52px 52px 52px;
-  gap: 6px; padding: 0 14px 6px; font-size: 10px; color: var(--muted);
-  letter-spacing: 0.04em; min-width: 580px;
+  gap: 6px; padding: 4px 14px 8px; font-size: 9px; color: var(--dim);
+  letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+  border-bottom: 1px solid var(--border); margin-bottom: 4px; min-width: 580px;
 }
 .node-header span:nth-child(n+3) { text-align: right; }
 .node-list { display: flex; flex-direction: column; gap: 3px; min-width: 580px; }
@@ -248,7 +249,7 @@ body {
 .node-row:hover { background: var(--raised); }
 .node-row.warn-stripe { border-left: 3px solid var(--warning); }
 .node-row.crit-stripe { border-left: 3px solid var(--danger); }
-.node-row.no-device { opacity: 0.4; cursor: default; }
+.node-row.no-device { cursor: default; }
 .node-id {
   display: flex; align-items: center; gap: 8px;
   font-size: 12px; font-weight: 500; min-width: 0; overflow: hidden;

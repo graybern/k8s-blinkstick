@@ -147,7 +147,10 @@ function updateAllViews(data) {
     renderPanels(document.getElementById('panels'), data);
     renderNodes(document.getElementById('nodes'), data.nodes);
   }
-  if (data.playback !== undefined) renderNowPlaying(document.getElementById('now-playing'), data.playback);
+  if (data.playback !== undefined) {
+    renderNowPlaying(document.getElementById('now-playing'), data.playback);
+    updatePresetButtons(data.playback);
+  }
 
   const eventsEl = document.getElementById('events');
   if (eventsEl && Date.now() - _lastEventFetch > 3000) {
@@ -518,10 +521,20 @@ function renderNodes(container, nodes) {
 
       if (!node.present) {
         row.className = 'node-row no-device';
-        const noLabel = document.createElement('div');
-        noLabel.className = 'no-device-label';
-        noLabel.textContent = 'no blinkstick';
-        row.appendChild(noLabel);
+        const ledsPlaceholder = document.createElement('div');
+        ledsPlaceholder.className = 'val';
+        ledsPlaceholder.style.textAlign = 'center';
+        ledsPlaceholder.style.fontSize = '9px';
+        ledsPlaceholder.style.color = 'var(--muted)';
+        ledsPlaceholder.textContent = '—';
+        row.appendChild(ledsPlaceholder);
+        ['cpu', 'mem', 'disk', 'clock'].forEach(name => {
+          const cell = document.createElement('div');
+          cell.className = 'val';
+          cell.dataset.role = name;
+          cell.textContent = '--';
+          row.appendChild(cell);
+        });
       } else {
         row.className = 'node-row';
         const ledsMini = document.createElement('div');
@@ -579,16 +592,16 @@ function renderNodes(container, nodes) {
       dotEl.className = `dot ${dotClass}`;
     }
 
-    if (!node.present) return;
-
-    const ledsMini = row.querySelector('[data-role="leds-mini"]');
-    if (ledsMini) {
-      const minis = ledsMini.querySelectorAll('.led-mini');
-      (node.leds || []).forEach((led, i) => {
-        if (i >= minis.length) return;
-        minis[i].style.background = `rgb(${led.r},${led.g},${led.b})`;
-        minis[i].classList.toggle('led-mini-off', led.r === 0 && led.g === 0 && led.b === 0);
-      });
+    if (node.present) {
+      const ledsMini = row.querySelector('[data-role="leds-mini"]');
+      if (ledsMini) {
+        const minis = ledsMini.querySelectorAll('.led-mini');
+        (node.leds || []).forEach((led, i) => {
+          if (i >= minis.length) return;
+          minis[i].style.background = `rgb(${led.r},${led.g},${led.b})`;
+          minis[i].classList.toggle('led-mini-off', led.r === 0 && led.g === 0 && led.b === 0);
+        });
+      }
     }
 
     const h = node.health || {};
@@ -691,6 +704,13 @@ async function runClockCheck() {
 
 async function stopPlayback() { await apiPost('/songs/stop'); }
 
+function updatePresetButtons(playback) {
+  document.querySelectorAll('[data-preset]').forEach(btn => {
+    const isActive = playback?.playing && playback.song === btn.dataset.preset;
+    btn.classList.toggle('primary', isActive);
+  });
+}
+
 async function playPreset(name) {
   const bpm = parseInt(document.getElementById('preset-bpm')?.value) || 120;
   const color = document.getElementById('preset-color')?.value || '#00ff00';
@@ -719,10 +739,10 @@ async function initDashboard() {
   const actions = document.getElementById('actions');
   if (actions) {
     actions.innerHTML = `
-      <button class="btn primary" onclick="playPreset('chase')">Chase</button>
-      <button class="btn" onclick="playPreset('rainbow')">Rainbow</button>
-      <button class="btn" onclick="playPreset('flash')">Flash</button>
-      <button class="btn" onclick="playPreset('police')">Police</button>
+      <button class="btn" data-preset="chase" onclick="playPreset('chase')">Chase</button>
+      <button class="btn" data-preset="rainbow" onclick="playPreset('rainbow')">Rainbow</button>
+      <button class="btn" data-preset="flash" onclick="playPreset('flash')">Flash</button>
+      <button class="btn" data-preset="police" onclick="playPreset('police')">Police</button>
       <div class="action-sep"></div>
       <button class="btn" onclick="apiPost('/off');closeLedPopover()">All off</button>`;
   }
