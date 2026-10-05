@@ -233,9 +233,10 @@ body {
 .node-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .node-header {
   display: grid; grid-template-columns: 1fr 34px 52px 52px 52px 52px;
-  gap: 6px; padding: 4px 14px 8px; font-size: 9px; color: var(--dim);
+  gap: 6px; padding: 6px 14px 8px; font-size: 9px; color: var(--dim);
   letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
-  border-bottom: 1px solid var(--border); margin-bottom: 4px; min-width: 580px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  border-radius: 4px 4px 0 0; margin-bottom: 4px; min-width: 580px;
 }
 .node-header span:nth-child(n+3) { text-align: right; }
 .node-list { display: flex; flex-direction: column; gap: 3px; min-width: 580px; }

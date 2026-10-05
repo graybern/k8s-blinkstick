@@ -142,6 +142,7 @@ function updateWsTimer() {
 
 function updateAllViews(data) {
   if (!data.active_mode && data.mode) data.active_mode = data.mode;
+  _lastStatusData = data;
   if (data.nodes) {
     renderLEDStrip(document.getElementById('led-strip'), data.nodes);
     renderAlerts(document.getElementById('alerts'), data.nodes);
@@ -536,6 +537,20 @@ function renderNodes(container, nodes) {
           cell.textContent = '--';
           row.appendChild(cell);
         });
+        const detail = document.createElement('div');
+        detail.className = 'node-detail';
+        detail.dataset.role = 'detail';
+        detail.style.display = 'none';
+        ['status', 'device', 'last seen', 'clock'].forEach(label => {
+          const item = document.createElement('div');
+          item.className = 'detail-item';
+          item.appendChild(document.createTextNode(label));
+          const val = document.createElement('span');
+          val.textContent = '--';
+          item.appendChild(val);
+          detail.appendChild(item);
+        });
+        row.appendChild(detail);
       } else {
         row.className = 'node-row';
         const ledsMini = document.createElement('div');
@@ -622,11 +637,16 @@ function renderNodes(container, nodes) {
     if (detail) {
       const expanded = _expandedNode === node.name;
       detail.style.display = expanded ? '' : 'none';
-      if (expanded && node.device) {
+      if (expanded) {
         const spans = detail.querySelectorAll('.detail-item span');
-        const d = node.device;
-        if (spans[0]) spans[0].textContent = d.serial || '--';
-        if (spans[1]) spans[1].textContent = d.leds != null ? String(d.leds) : '--';
+        const d = node.device || {};
+        if (node.present) {
+          if (spans[0]) spans[0].textContent = d.serial || '--';
+          if (spans[1]) spans[1].textContent = d.leds != null ? String(d.leds) : '--';
+        } else {
+          if (spans[0]) spans[0].textContent = node.online ? 'online' : 'offline';
+          if (spans[1]) spans[1].textContent = 'no blinkstick';
+        }
         if (spans[2]) spans[2].textContent = d.last_seen ? `${Math.round(Date.now()/1000 - d.last_seen)}s ago` : '--';
         if (spans[3]) spans[3].textContent = d.clock_skew_ms != null ? `${Math.round(d.clock_skew_ms)}ms` : '--';
       }
@@ -706,9 +726,9 @@ async function runClockCheck() {
 async function stopPlayback() { await apiPost('/songs/stop'); }
 
 function updatePresetButtons(playback) {
-  const activeSong = playback?.playing ? playback.song : null;
+  const song = playback?.playing ? (playback.song || '').replace(/^preset-/, '') : null;
   document.querySelectorAll('[data-preset]').forEach(btn => {
-    btn.classList.toggle('primary', btn.dataset.preset === activeSong);
+    btn.classList.toggle('primary', btn.dataset.preset === song);
   });
 }
 
@@ -745,7 +765,17 @@ async function initDashboard() {
       <button class="btn" data-preset="flash" onclick="playPreset('flash')">Flash</button>
       <button class="btn" data-preset="police" onclick="playPreset('police')">Police</button>
       <div class="action-sep"></div>
-      <button class="btn" onclick="apiPost('/off');closeLedPopover()">All off</button>`;
+      <button class="btn" onclick="allOff(this)">All off</button>`;
+  }
+}
+
+async function allOff(btn) {
+  await apiPost('/off');
+  closeLedPopover();
+  if (btn) {
+    btn.classList.add('danger');
+    btn.textContent = 'Off';
+    setTimeout(() => { btn.classList.remove('danger'); btn.textContent = 'All off'; }, 1000);
   }
 }
 
