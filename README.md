@@ -259,6 +259,7 @@ The controller exposes metrics at `/api/v1/metrics` in Prometheus exposition for
 - `blinkstick_clock_skew_ms` — gauge per node
 - `blinkstick_nodes_online`, `blinkstick_nodes_present` — gauges
 - `blinkstick_engine_tick_duration_seconds` — histogram
+- `blinkstick_overlay_triggers_total` — counter by overlay name
 - `blinkstick_websocket_connections` — gauge
 
 ### Dashboard Alerts
@@ -404,7 +405,7 @@ See [TODO.md](TODO.md) for the full phased plan.
 - **Phase 3** — Web UI + Music Mode (complete)
 - **Phase 4a** — Observability + Beat Sheet Editor (complete)
 - **UX Quality Pass** — 30-commit polish session: DOM refactor, LED popovers, live music viz, editor tools (fill row/column, drag paint, undo, move beats), Patterns rename (complete)
-- **Phase 4b** — Event Overlays + Creative Modes (Twingate, ArgoCD, Knight Rider)
+- **Phase 4b** — Event Overlays + Creative Modes: engine foundation with mode registry + overlay layer (complete), background modes and event overlay pollers (next)
 
 ## Acknowledgements
 

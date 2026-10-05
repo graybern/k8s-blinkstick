@@ -273,6 +273,20 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 **Goal:** Layered overlays, screensaver modes, Twingate integration.
 
+### Engine Foundation ✅ COMPLETE (2026-10-05)
+- [x] Mode registry (`MODE_REGISTRY` dict + `register_mode()` factory pattern)
+- [x] `set_mode()` refactored: registry lookup + factory with deps dict (replaces if/elif chain)
+- [x] `get_available_modes()` iterates registry
+- [x] Overlay layer: `_overlay_queue` (priority deque), `_active_overlay` slot
+- [x] `trigger_overlay(name, reason, priority, duration, color, effect, params)` — enqueue, preempt, log, metric
+- [x] Split LED merge in `_tick()`: LED 0 = background, LED 1 = overlay (suppressed during foreground modes)
+- [x] Priority preemption: AlertManager (3) > ArgoCD (2) > Twingate (1); expired overlays promote from queue
+- [x] `start_overlay_services()` / `stop_overlay_services()` lifecycle stubs
+- [x] WS broadcast includes `active_overlay` + `overlay_reason`
+- [x] Config: `LOKI_URL`, `ALERTMANAGER_URL`, `ARGOCD_POLL_INTERVAL`, per-overlay enable flags
+- [x] Prometheus: `blinkstick_overlay_triggers_total` counter by name
+- [x] `event_log` wired into ModeEngine constructor
+
 ### Background modes
 - [ ] Knight Rider (scanner sweep)
 - [ ] Rainbow Wave (traveling hue rotation)
@@ -285,7 +299,6 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [ ] Alert Escalation (AlertManager API → red strobe on critical)
 
 ### Polish
-- [ ] Split LED assignment (background on LED 0, overlay on LED 1)
 - [ ] Homepage integration (Ingress annotations in octolet)
 - [ ] Optional: Grafana dashboard for agent health
 

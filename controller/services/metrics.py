@@ -23,6 +23,7 @@ if HAS_PROMETHEUS:
     ENGINE_TICK_DURATION = Histogram("blinkstick_engine_tick_duration_seconds", "Engine tick duration")
     WS_CONNECTIONS = Gauge("blinkstick_websocket_connections", "Active WebSocket connections")
     SONGS_TOTAL = Gauge("blinkstick_songs_total", "Number of loaded songs")
+    OVERLAY_TRIGGERS = Counter("blinkstick_overlay_triggers_total", "Overlay triggers", ["name"])
 
 
 def record_mode_switch(from_mode: str, to_mode: str):
@@ -74,6 +75,11 @@ def observe_engine_tick(duration: float):
 def observe_prom_poll(duration: float):
     if HAS_PROMETHEUS:
         PROM_POLL_DURATION.observe(duration)
+
+
+def record_overlay_trigger(name: str):
+    if HAS_PROMETHEUS:
+        OVERLAY_TRIGGERS.labels(name=name).inc()
 
 
 def get_metrics_response() -> tuple[bytes, str]:

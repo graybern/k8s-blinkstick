@@ -100,7 +100,7 @@ def main():
     prometheus = PrometheusClient()
     k8s = K8sClient()
     song_store = SongStore(k8s)
-    engine = ModeEngine(mqtt_client, prometheus, song_store)
+    engine = ModeEngine(mqtt_client, prometheus, song_store, event_log=event_log)
 
     app.state.event_log = event_log
     app.state.mqtt_client = mqtt_client

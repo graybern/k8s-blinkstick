@@ -11,6 +11,16 @@ LOG_FORMAT = os.environ.get("LOG_FORMAT", "text")
 K8S_NAMESPACE = os.environ.get("K8S_NAMESPACE", "blinkstick")
 SONG_POLL_INTERVAL = int(os.environ.get("SONG_POLL_INTERVAL", "30"))
 
+LOKI_URL = os.environ.get("LOKI_URL", "http://loki.monitoring:3100")
+LOKI_POLL_INTERVAL = int(os.environ.get("LOKI_POLL_INTERVAL", "5"))
+ALERTMANAGER_URL = os.environ.get("ALERTMANAGER_URL", "http://prometheus-stack-kube-prom-alertmanager.monitoring:9093")
+ALERTMANAGER_POLL_INTERVAL = int(os.environ.get("ALERTMANAGER_POLL_INTERVAL", "10"))
+ARGOCD_POLL_INTERVAL = int(os.environ.get("ARGOCD_POLL_INTERVAL", "10"))
+TWINGATE_LOGQL_QUERY = os.environ.get("TWINGATE_LOGQL_QUERY", "")
+OVERLAY_TWINGATE_ENABLED = os.environ.get("OVERLAY_TWINGATE_ENABLED", "true").lower() == "true"
+OVERLAY_DEPLOY_ENABLED = os.environ.get("OVERLAY_DEPLOY_ENABLED", "true").lower() == "true"
+OVERLAY_ALERT_ENABLED = os.environ.get("OVERLAY_ALERT_ENABLED", "true").lower() == "true"
+
 _node_order = os.environ.get("PHYSICAL_NODE_ORDER", "")
 PHYSICAL_NODE_ORDER = [n.strip() for n in _node_order.split(",") if n.strip()] or None
 

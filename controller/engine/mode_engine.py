@@ -2,10 +2,12 @@ import asyncio
 import logging
 import threading
 import time
+from collections import deque
 
 from controller.services.mqtt_client import MQTTClient
 from controller.services.prometheus import PrometheusClient
 from controller.services.song_store import SongStore
+from controller.services.event_log import EventLog
 from controller.services import metrics
 from controller.engine.status_mode import StatusMode
 from controller.engine.music_mode import MusicMode
@@ -15,6 +17,18 @@ log = logging.getLogger(__name__)
 ESCALATION_SEVERITIES = {"critical"}
 MORPH_DURATION = 1000
 MORPH_STEPS = 50
+
+# --- Mode Registry ---
+
+MODE_REGISTRY: dict[str, dict] = {}
+
+
+def register_mode(name: str, factory, layer: str, led_strategy: str):
+    MODE_REGISTRY[name] = {
+        "factory": factory,
+        "layer": layer,
+        "led_strategy": led_strategy,
+    }
 
 
 class DirectMode:
@@ -32,11 +46,18 @@ class DirectMode:
         return None
 
 
+register_mode("status", lambda deps: StatusMode(deps["prometheus"], deps["mqtt"]), "background", "unified")
+register_mode("direct", lambda deps: DirectMode(), "foreground", "unified")
+register_mode("music", lambda deps: MusicMode(deps["mqtt"], deps["song_store"]), "foreground", "unified")
+
+
 class ModeEngine:
-    def __init__(self, mqtt_client: MQTTClient, prometheus: PrometheusClient, song_store: SongStore | None = None):
+    def __init__(self, mqtt_client: MQTTClient, prometheus: PrometheusClient,
+                 song_store: SongStore | None = None, event_log: EventLog | None = None):
         self._mqtt = mqtt_client
         self._prometheus = prometheus
         self._song_store = song_store
+        self._event_log = event_log
         self._background_mode: StatusMode | None = None
         self._foreground_mode = None
         self._active_mode_name = ""
@@ -47,6 +68,9 @@ class ModeEngine:
         self._stop_event = threading.Event()
         self._broadcast_fn = None
         self._main_loop = None
+        # Overlay state
+        self._overlay_queue: deque[dict] = deque(maxlen=20)
+        self._active_overlay: dict | None = None
 
     def set_loop(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
@@ -64,11 +88,17 @@ class ModeEngine:
     def active_mode(self) -> str:
         return self._active_mode_name
 
+    def _get_deps(self) -> dict:
+        return {
+            "mqtt": self._mqtt,
+            "prometheus": self._prometheus,
+            "song_store": self._song_store,
+        }
+
     def get_available_modes(self) -> list[dict]:
         return [
-            {"name": "status", "layer": "background", "led_strategy": "unified"},
-            {"name": "direct", "layer": "foreground", "led_strategy": "unified"},
-            {"name": "music", "layer": "foreground", "led_strategy": "unified"},
+            {"name": name, "layer": info["layer"], "led_strategy": info["led_strategy"]}
+            for name, info in MODE_REGISTRY.items()
         ]
 
     def get_last_published(self) -> dict[str, dict]:
@@ -89,6 +119,7 @@ class ModeEngine:
 
     async def start(self, default_mode: str = "status"):
         await self.set_mode(default_mode)
+        self._start_overlay_services()
         self._tick_task = asyncio.create_task(self._tick_loop())
         log.info("Mode engine started with mode=%s", default_mode)
 
@@ -99,6 +130,7 @@ class ModeEngine:
                 await self._tick_task
             except asyncio.CancelledError:
                 pass
+        self._stop_overlay_services()
         if self._background_mode:
             await self._background_mode.stop()
         if self._foreground_mode:
@@ -109,6 +141,11 @@ class ModeEngine:
         if name == self._active_mode_name:
             return
 
+        entry = MODE_REGISTRY.get(name)
+        if not entry:
+            log.warning("Unknown mode: %s", name)
+            return
+
         if self._background_mode:
             self._last_health = dict(self._background_mode.get_node_health())
             await self._background_mode.stop()
@@ -117,24 +154,19 @@ class ModeEngine:
             await self._foreground_mode.stop()
             self._foreground_mode = None
 
-        if name == "status":
-            self._background_mode = StatusMode(self._prometheus, self._mqtt)
-            await self._background_mode.start()
-        elif name == "direct":
-            self._foreground_mode = DirectMode()
-            await self._foreground_mode.start()
-        elif name == "music":
-            self._foreground_mode = MusicMode(self._mqtt, self._song_store)
-            await self._foreground_mode.start()
+        mode = entry["factory"](self._get_deps())
+
+        if entry["layer"] == "background":
+            self._background_mode = mode
         else:
-            log.warning("Unknown mode: %s", name)
-            return
+            self._foreground_mode = mode
+        await mode.start()
 
         old_mode = self._active_mode_name
         self._active_mode_name = name
         self._mqtt.publish_mode({
             "mode": name,
-            "led_strategy": "unified",
+            "led_strategy": entry["led_strategy"],
         })
         metrics.record_mode_switch(old_mode or "none", name)
         log.info("Mode switched to: %s", name)
@@ -154,6 +186,84 @@ class ModeEngine:
             future = asyncio.run_coroutine_threadsafe(coro, self._loop)
             return future.result(timeout=10)
         return None
+
+    # --- Overlay Layer ---
+
+    def trigger_overlay(self, name: str, reason: str, priority: int,
+                        duration: float, color: tuple[int, int, int],
+                        effect: str = "solid", params: dict | None = None):
+        now = time.time()
+        overlay = {
+            "name": name,
+            "reason": reason,
+            "priority": priority,
+            "duration": duration,
+            "color": color,
+            "effect": effect,
+            "params": params or {},
+            "started_at": now,
+            "expires_at": now + duration,
+        }
+
+        if self._active_overlay:
+            if priority >= self._active_overlay["priority"]:
+                self._overlay_queue.appendleft(self._active_overlay)
+                self._active_overlay = overlay
+            else:
+                self._overlay_queue.append(overlay)
+        else:
+            self._active_overlay = overlay
+
+        if self._event_log:
+            self._event_log.append("overlay", f"{name}: {reason}", target="all")
+        metrics.record_overlay_trigger(name)
+        log.info("Overlay triggered: %s (priority=%d, duration=%.1fs)", name, priority, duration)
+
+    def get_active_overlay(self) -> dict | None:
+        return self._active_overlay
+
+    def _check_overlay_expiry(self):
+        if not self._active_overlay:
+            return
+        now = time.time()
+        if now >= self._active_overlay["expires_at"]:
+            log.info("Overlay expired: %s", self._active_overlay["name"])
+            self._active_overlay = None
+            while self._overlay_queue:
+                candidate = self._overlay_queue.popleft()
+                if candidate["expires_at"] > now:
+                    self._active_overlay = candidate
+                    break
+
+    def _apply_overlay(self, state: dict[str, dict]) -> dict[str, dict]:
+        if not self._active_overlay:
+            return state
+        overlay = self._active_overlay
+        r, g, b = overlay["color"]
+        merged = {}
+        for node, cmd in state.items():
+            leds = cmd.get("leds", [])
+            led0 = next((l for l in leds if l["index"] == 0), None)
+            new_leds = []
+            if led0:
+                new_leds.append(dict(led0))
+            new_leds.append({"index": 1, "r": r, "g": g, "b": b})
+            merged[node] = {
+                "leds": new_leds,
+                "effect": overlay["effect"],
+                "params": overlay["params"],
+            }
+            if "_severity" in cmd:
+                merged[node]["_severity"] = cmd["_severity"]
+        return merged
+
+    def _start_overlay_services(self):
+        log.info("Overlay services started (no pollers configured yet)")
+
+    def _stop_overlay_services(self):
+        log.info("Overlay services stopped")
+
+    # --- Tick Loop ---
 
     async def _tick_loop(self):
         while not self._stop_event.is_set():
@@ -184,6 +294,11 @@ class ModeEngine:
 
         if state is None:
             return
+
+        # Overlay merge — only when no foreground mode is active
+        self._check_overlay_expiry()
+        if self._active_overlay and not self._foreground_mode:
+            state = self._apply_overlay(state)
 
         commands_to_publish = {}
         for node, cmd in state.items():
@@ -263,7 +378,14 @@ class ModeEngine:
         if music:
             ps = music.get_playback_state()
             playback = {"playing": ps.playing, "song": ps.song, "beat_index": ps.beat_index, "total_beats": ps.total_beats, "elapsed": ps.elapsed}
-        data = {"nodes": nodes, "active_mode": self._active_mode_name, "playback": playback}
+        overlay = self._active_overlay
+        data = {
+            "nodes": nodes,
+            "active_mode": self._active_mode_name,
+            "playback": playback,
+            "active_overlay": overlay["name"] if overlay else None,
+            "overlay_reason": overlay["reason"] if overlay else None,
+        }
         try:
             asyncio.run_coroutine_threadsafe(self._broadcast_fn(data), self._main_loop)
         except Exception:

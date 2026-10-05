@@ -127,6 +127,10 @@ The controller runs a layered mode engine:
 
 LED assignment strategies per mode: `unified` (both LEDs same), `split` (LED 0 = background, LED 1 = overlay), `independent` (each LED runs a different thing).
 
+**Mode registry**: `MODE_REGISTRY` dict maps name → `{factory, layer, led_strategy}`. `register_mode()` adds entries at module level. `set_mode()` does a registry lookup and calls the factory with a deps dict (`{"mqtt": ..., "prometheus": ..., "song_store": ...}`). New modes register themselves; no `if/elif` chain.
+
+**Overlay layer**: Priority-based single slot, not a stack. `trigger_overlay(name, reason, priority, duration, color, effect, params)` enqueues an overlay event. Higher priority preempts active overlay (AlertManager=3 > ArgoCD=2 > Twingate=1). During `_tick()`, if an overlay is active and no foreground mode: engine merges LED 0 from background + LED 1 from overlay color/effect. Overlays are suppressed during any foreground mode (music, direct). Expired overlays promote the next from queue. Overlay pollers are services (start/stop with engine), not modes.
+
 ### Controller Design
 
 - **FastAPI** + Jinja2 + vanilla JS (no npm/build step, htmx removed)
@@ -137,7 +141,7 @@ LED assignment strategies per mode: `unified` (both LEDs same), `split` (LED 0 =
 - **WebSocket** `/ws/live` — pushes node state, health, playback info to dashboard at up to 10/sec
 - **Event log** — in-memory ring buffer (200 events) recording every MQTT publish, mode switch, playback action
 - **MQTT inspector** — wildcard subscription to `blinkstick/#` for debugging, stored in ring buffer
-- **Prometheus metrics** — `/metrics` endpoint with `prometheus_client` (counters, gauges, histograms for mode switches, commands, clock skew, tick duration)
+- **Prometheus metrics** — `/metrics` endpoint with `prometheus_client` (counters, gauges, histograms for mode switches, commands, clock skew, tick duration, overlay triggers)
 
 ### Frontend Patterns
 
