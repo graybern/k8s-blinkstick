@@ -401,7 +401,7 @@ See [TODO.md](TODO.md) for the full phased plan.
 - **Phase 2** — Controller + Status Mode (complete)
 - **Phase 3** — Web UI + Music Mode (complete)
 - **Phase 4a** — Observability + Beat Sheet Editor (complete)
-- **UX Quality Pass** — 21-issue audit: DOM refactor, editor data integrity, error handling, accessibility (complete)
+- **UX Quality Pass** — 30-commit polish session: DOM refactor, LED popovers, live music viz, editor tools (fill row/column, drag paint, undo, move beats), Patterns rename (complete)
 - **Phase 4b** — Event Overlays + Creative Modes (Twingate, ArgoCD, Knight Rider)
 
 ## License

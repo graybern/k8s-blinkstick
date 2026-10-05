@@ -234,6 +234,41 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ---
 
+## Dashboard + Editor Polish (2026-10-04) ✅ COMPLETE
+
+### Dashboard
+- [x] WS broadcast shape matches /status API (active_mode, device, cpu_usage fields)
+- [x] Health data persists across mode switches (last-known values in direct/music)
+- [x] Live LED visualization during music playback (get_current_led_state + 5Hz broadcast)
+- [x] Auto clock check on page load
+- [x] Presets moved above panels (closer to LED strip)
+- [x] Status + Alternate + Stop buttons added to preset bar
+- [x] Preset highlight matches active playback (strips preset- prefix)
+- [x] All Off reactive danger styling from LED state
+- [x] No-device nodes show CPU/mem/disk/clock metrics
+- [x] Node table header contrast (uppercase, background, border)
+- [x] LED off visual: dashed border + 0.35 opacity
+- [x] Renamed Music → Patterns throughout
+- [x] Police preset hardcoded red/blue
+
+### Editor
+- [x] Fill row (click beat number)
+- [x] Fill column (click node header)
+- [x] Drag-to-paint (mousedown + mouseover)
+- [x] Undo (20-deep stack, Ctrl+Z, button)
+- [x] Move beats up/down (↑/↓ per row)
+- [x] Clear row (○ per row) + Clear all button
+- [x] Swatch indicator (scale + accent ring)
+- [x] Grid scroll preservation on mutations
+- [x] addBeat scrollIntoView
+- [x] Section form inside grid-wrap
+- [x] Auto-select first brush on init + loadSong
+- [x] Defensive toYaml error handling
+- [x] Sticky editor action buttons
+- [x] Beat sheet recipe template in CLAUDE.md
+
+---
+
 ## Phase 4b: Event Overlays + Creative Modes
 
 **Goal:** Layered overlays, screensaver modes, Twingate integration.
