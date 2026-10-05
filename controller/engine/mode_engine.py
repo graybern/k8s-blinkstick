@@ -165,7 +165,8 @@ class ModeEngine:
                 metrics.set_nodes_online(sum(1 for v in registry.values() if v.get("online")))
                 metrics.set_nodes_present(sum(1 for v in registry.values() if v.get("present")))
                 self._do_broadcast()
-                await asyncio.sleep(1.0)
+                music = self.get_music_mode()
+                await asyncio.sleep(0.2 if (music and music._playing) else 1.0)
             except asyncio.CancelledError:
                 return
             except Exception:
