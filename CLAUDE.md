@@ -162,6 +162,25 @@ LED assignment strategies per mode: `unified` (both LEDs same), `split` (LED 0 =
 - **Built-in presets**: chase, alternate, rainbow, flash, police — generated programmatically, no YAML needed.
 - **Song store**: ConfigMaps with label `blinkstick.octolet.int/type: song`, polled every 30s.
 
+### How to Create a Beat Sheet
+
+**Inputs needed:** Lyrics with syllables, BPM, 2-3 colors, pattern style
+
+**Pattern styles:**
+- **Sweep**: `RGGG→GRGG→GGRG→GGGR` — melody following, most songs
+- **Pulse**: `RRRR→GGGG` — strong beat emphasis
+- **Alternate**: `RRGG→GGRR` — call-and-response
+- **Crescendo**: `{colors: "RRRR", hold: 3}` — held notes
+
+**Recipe:**
+1. Map each syllable to one beat (4-char shorthand, one char per node in `node_order`)
+2. Accent color sweeps L→R following melody
+3. Background color fills resting nodes
+4. Define repeating phrases as `sections:` for reuse
+5. Add 2 beats of background between phrases
+6. Hold long notes with `{colors: "XXXX", hold: N}`
+7. Set `loop: true` for continuous play
+
 ## BlinkStick Python API (what we use)
 
 ```python
