@@ -20,13 +20,13 @@ Agents publish their device state (present, serial, LED count) to MQTT. The cont
 
 The controller serves a web UI at the ingress root, designed for both an 800x480 Pi touchscreen and desktop browsers.
 
-**Three pages**: Dashboard (LED visualization + health + mode switching), Music (song library + presets + beat sheet editor), Settings (MQTT inspector + event history + system info).
+**Three pages**: Dashboard (LED visualization + health + mode switching), Patterns (pattern library + built-in presets + beat sheet editor), Settings (MQTT inspector + event history + system info).
 
 **LED strip as control surface**: the global LED visualization doubles as the direct control interface. Click any LED circle to open an inline popover with per-LED color pickers and effect selector — the system auto-switches to direct mode. Works on all pages.
 
 **Five themes**: System, Light, Dark, Midnight, Terminal — persisted to localStorage, selectable from the nav bar.
 
-**Live updates**: WebSocket at `/ws/live` pushes node state, health, and playback info at up to 10 updates/sec. Polling fallback (3s) activates automatically when WebSocket is unavailable. Health metrics persist across mode switches — the dashboard shows last-known values even in direct or music mode.
+**Live updates**: WebSocket at `/ws/live` pushes node state, health, and playback info. Broadcast rate increases to 5 Hz during music playback so the LED visualization animates in real time with the beat pattern. Polling fallback (3s) activates automatically when WebSocket is unavailable. Health metrics persist across mode switches.
 
 ## Supported Devices
 

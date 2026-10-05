@@ -148,6 +148,9 @@ LED assignment strategies per mode: `unified` (both LEDs same), `split` (LED 0 =
 - **No prompt()/alert()/confirm()**: use inline forms + `showToast()` instead. Blocking dialogs freeze the WS connection.
 - **LED popover for direct control**: click any LED circle → inline popover with per-LED color pickers + effect dropdown. Auto-switches to direct mode. No separate Direct Control section — the LED strip is both status display and control surface. Popover closes on Escape, click outside, or same-node click.
 - **Health data persists across modes**: `ModeEngine.get_health_data()` returns live data when status mode is active, cached snapshot when it's not. Dashboard shows last-known metrics in direct/music mode instead of "--".
+- **Live music visualization**: `MusicMode.get_current_led_state()` computes current beat colors from the saved timetable. `_do_broadcast` reads from this during playback (not `_last_published`) to avoid spurious engine morphs. Tick rate increases to 5 Hz (0.2s) during playback to catch beats up to 300 BPM.
+- **classList.toggle pitfall**: always pass a boolean. `classList.toggle(class, undefined)` toggles instead of removing — `&&` short-circuit produces undefined, not false.
+- **WS broadcast shape must match /status API**: JS expects one shape (`active_mode`, `device` object, `cpu_usage`/`memory_usage`/`disk_usage`). The `_do_broadcast` method builds the same structure. `updateAllViews` normalizes `data.mode` → `data.active_mode` as a safety net.
 
 ### Music Mode
 
