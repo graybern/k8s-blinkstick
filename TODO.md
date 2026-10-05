@@ -214,20 +214,20 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ---
 
-## Clickable LED Circles ✅ IN PROGRESS
+## Clickable LED Circles ✅ COMPLETE (2026-10-05)
 
 **Goal:** Replace the Direct Control section with clickable LED circles. Click a circle → inline popover with per-LED color pickers + effect + Apply.
 
-- [ ] LED circles clickable (onclick on `.node-unit`)
-- [ ] Inline popover with color pickers, effect dropdown, Apply
-- [ ] Auto-switch to direct mode on click (`ensureDirectMode()`)
-- [ ] Toast feedback for mode switch / music stop
-- [ ] Click outside / Escape to close
-- [ ] "Apply to all nodes" in popover
-- [ ] Popover overflow protection (rightmost node)
-- [ ] WS updates don't override popover pickers
-- [ ] Remove Direct Control section (`#direct-section`, `renderDirectControls`, `sendDirect`, etc.)
-- [ ] Accessibility: role="button", tabindex, keyboard nav, focus trap
+- [x] LED circles clickable (onclick on `.node-unit`)
+- [x] Inline popover with color pickers, effect dropdown, Apply
+- [x] Auto-switch to direct mode on click (`ensureDirectMode()`)
+- [x] Toast feedback for mode switch / music stop
+- [x] Click outside / Escape to close
+- [x] "Apply to all nodes" in popover
+- [x] Popover overflow protection (rightmost node)
+- [x] WS updates don't override popover pickers
+- [x] Remove Direct Control section (`#direct-section`, `renderDirectControls`, `sendDirect`, etc.)
+- [x] Accessibility: role="button", tabindex, keyboard nav, focus trap
 
 ### Octolet repo
 - No changes needed
