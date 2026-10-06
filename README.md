@@ -273,7 +273,7 @@ The dashboard renders alert banners when nodes exceed health thresholds. Warning
 | GET | `/healthz` | Liveness probe |
 | GET | `/readyz` | Readiness probe (503 if MQTT disconnected) |
 | GET | `/api/v1/status` | Node health + current LED state |
-| GET | `/api/v1/modes` | Available modes (7 total: status, direct, music, knight-rider, rainbow-wave, breathing, temperature) |
+| GET | `/api/v1/modes` | Available modes (10 total) |
 | GET | `/api/v1/modes/active` | Current mode |
 | POST | `/api/v1/modes/active` | Switch mode |
 | POST | `/api/v1/direct` | Send LED command (direct mode only, else 409) |
@@ -293,6 +293,12 @@ The dashboard renders alert banners when nodes exceed health thresholds. Warning
 | GET | `/api/v1/events` | Event log (optional `?type=` filter) |
 | GET | `/api/v1/mqtt/messages` | MQTT inspector (last 100 messages) |
 | GET | `/api/v1/metrics` | Prometheus metrics (exposition format) |
+| GET | `/api/v1/overlays` | Overlay services with enabled/active state |
+| GET | `/api/v1/overlays/active` | Current active overlay or null |
+| POST | `/api/v1/webhook/flash` | External LED flash trigger (optional auth) |
+| POST | `/api/v1/morse/send` | Send Morse code (text + wpm) |
+| POST | `/api/v1/timer/start` | Start countdown timer (duration_seconds) |
+| POST | `/api/v1/timer/stop` | Stop countdown, return to status mode |
 | WS | `/ws/live` | Live state updates (max 10 connections, 10/sec) |
 
 ## Architecture
@@ -309,8 +315,8 @@ The dashboard renders alert banners when nodes exceed health thresholds. Warning
 ### Controller
 
 - FastAPI app with engine running in a separate daemon thread (own asyncio event loop)
-- Layered mode engine: background (status, knight-rider, rainbow-wave, breathing, temperature), event overlay, foreground (direct, music)
-- Mode registry pattern: `register_mode()` factory with deps dict — new modes self-register
+- Layered mode engine: 6 background (status, knight-rider, rainbow-wave, breathing, temperature, network), event overlays (5 sources), 4 foreground (direct, music, morse, countdown)
+- Mode registry pattern: `register_mode()` factory with deps dict — 10 modes self-register
 - Dynamic node discovery from MQTT retained messages — no hardcoded node count
 - LED count per device read from agent state — works with Nano (2), Strip (8), or Pro (64)
 - Song store backed by Kubernetes ConfigMaps with 30s polling
@@ -352,13 +358,17 @@ controller/
     twingate_mode.py      # Overlay: Loki connection log → cyan blink
     deploy_mode.py        # Overlay: ArgoCD sync → blue solid
     alert_mode.py         # Overlay: AlertManager critical → red blink
+    pod_lifecycle_mode.py # Overlay: pod create/delete flash
+    network_mode.py       # RX/TX throughput (blue/green brightness)
+    morse_mode.py         # Morse code blinker
+    countdown_mode.py     # Visual countdown timer
     presets.py        # Built-in pattern generators (chase, rainbow, etc.)
   services/
     mqtt_client.py    # MQTT publisher + state subscriber + clock sync + inspector
-    prometheus.py     # httpx → Prometheus API (health, temperature)
+    prometheus.py     # httpx → Prometheus API (health, temperature, network)
     loki.py           # httpx → Loki API (query, query_range)
     alertmanager.py   # httpx → AlertManager API (alerts, firing critical)
-    k8s.py            # K8s API client (SA token + httpx + ConfigMap CRUD + ArgoCD)
+    k8s.py            # K8s API client (SA token + httpx + ConfigMaps, ArgoCD, Pods)
     song_store.py     # ConfigMap-backed song cache with 30s polling
     event_log.py      # In-memory event ring buffer (200 events)
     metrics.py        # Prometheus metrics (counters, gauges, histograms)
@@ -415,7 +425,8 @@ See [TODO.md](TODO.md) for the full phased plan.
 - **Phase 3** — Web UI + Music Mode (complete)
 - **Phase 4a** — Observability + Beat Sheet Editor (complete)
 - **UX Quality Pass** — 30-commit polish session: DOM refactor, LED popovers, live music viz, editor tools (fill row/column, drag paint, undo, move beats), Patterns rename (complete)
-- **Phase 4b** — Event Overlays + Creative Modes (complete): mode registry, overlay layer, 4 background modes (knight-rider, rainbow-wave, breathing, temperature), 3 event overlays (Twingate, ArgoCD, AlertManager), Loki + AlertManager service clients
+- **Phase 4b** — Event Overlays + Creative Modes (complete): mode registry, overlay layer, 6 background modes, 4 foreground modes, 5 overlay sources, Loki + AlertManager service clients
+- **Post-Phase 4** — Network traffic mode, webhook overlay, pod lifecycle overlay, Morse code blinker, countdown timer (complete)
 
 ## Acknowledgements
 

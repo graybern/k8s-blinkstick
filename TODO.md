@@ -149,8 +149,8 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] `web/static/css/style.css` — Editor grid styles, palette bar, section markers
 
 ### Octolet repo
-- [ ] Add Prometheus ServiceMonitor for /metrics scraping
-- [ ] Update controller RBAC if needed for ConfigMap CRUD
+- [x] Add Prometheus ServiceMonitor for /metrics scraping (octolet commit 824e718)
+- [x] Update controller RBAC if needed for ConfigMap CRUD (octolet commit 824e718)
 
 ### Verify
 - Dashboard: alert banners, clock sync panel, full node table with roles + expandable detail
