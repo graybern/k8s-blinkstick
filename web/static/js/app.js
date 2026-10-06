@@ -354,7 +354,7 @@ function renderOverlayBadge(el, overlayName, overlayReason) {
   }
   el.hidden = false;
   el.dataset.overlay = overlayName;
-  el.innerHTML = `<span class="overlay-name">${overlayName}</span><span class="overlay-reason">${overlayReason || ''}</span>`;
+  el.innerHTML = `<span class="overlay-name">${overlayName}</span> <span class="overlay-reason">${overlayReason || ''}</span>`;
 }
 
 function renderAlerts(container, nodes) {
