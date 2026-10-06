@@ -457,6 +457,7 @@ const MODE_DESCRIPTIONS = {
   'rainbow-wave': 'Traveling hue rotation across all LEDs',
   'breathing': 'CPU-proportional pulse — fast when busy, slow when idle',
   'temperature': 'CPU thermal heatmap — blue cool, green warm, red hot',
+  'network': 'Network throughput — blue RX, green TX, brightness = traffic',
 };
 
 async function toggleModePopover() {

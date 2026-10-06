@@ -121,6 +121,39 @@ class PrometheusClient:
 
         return nodes
 
+    async def query_network_traffic(self) -> dict[str, dict]:
+        rx_results, tx_results = await asyncio.gather(
+            self._query('sum by(instance) (rate(node_network_receive_bytes_total{device!="lo"}[2m]))'),
+            self._query('sum by(instance) (rate(node_network_transmit_bytes_total{device!="lo"}[2m]))'),
+            return_exceptions=True,
+        )
+        if isinstance(rx_results, Exception):
+            log.warning("Network RX query failed: %s", rx_results)
+            rx_results = []
+        if isinstance(tx_results, Exception):
+            log.warning("Network TX query failed: %s", tx_results)
+            tx_results = []
+        traffic: dict[str, dict] = {}
+        for r in rx_results:
+            instance = r["metric"].get("instance", "")
+            node = self.resolve_node(instance)
+            if not node:
+                continue
+            try:
+                traffic.setdefault(node, {})["rx_bps"] = float(r["value"][1])
+            except (IndexError, ValueError, TypeError):
+                continue
+        for r in tx_results:
+            instance = r["metric"].get("instance", "")
+            node = self.resolve_node(instance)
+            if not node:
+                continue
+            try:
+                traffic.setdefault(node, {})["tx_bps"] = float(r["value"][1])
+            except (IndexError, ValueError, TypeError):
+                continue
+        return traffic
+
     async def query_cpu_temperature(self) -> dict[str, float]:
         results = await self._query('node_thermal_zone_temp{type="cpu-thermal"}')
         if not results:
