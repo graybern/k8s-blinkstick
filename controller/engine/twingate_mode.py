@@ -44,7 +44,9 @@ class TwingateOverlay:
         logql = TWINGATE_LOGQL_QUERY or DEFAULT_LOGQL
         while True:
             try:
-                results = await self._loki.query(logql, limit=50)
+                now = str(int(time.time()))
+                start = str(int(time.time()) - LOKI_POLL_INTERVAL)
+                results = await self._loki.query_range(logql, start=start, end=now, limit=50)
                 self._process_results(results)
                 await asyncio.sleep(LOKI_POLL_INTERVAL)
             except asyncio.CancelledError:
