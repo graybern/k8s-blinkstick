@@ -322,3 +322,25 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 - [x] Pod Lifecycle overlay (green flash on create, amber blink on delete)
 - [x] Morse Code blinker foreground mode (POST /api/v1/morse/send)
 - [x] Countdown Timer foreground mode (POST /api/v1/timer/start, green→red→flash)
+
+---
+
+## UX Polish ✅ COMPLETE (2026-10-06)
+
+**Goal:** Calm by default, everything opt-in. Restore pre-4b calm while keeping all features accessible.
+
+- [x] Default all 5 overlay configs to OFF (env vars default `"false"`)
+- [x] Runtime overlay toggle API (`POST /api/v1/overlays/{name}/toggle`) + dashboard toggle UI
+- [x] Pod lifecycle: namespace filtering (`POD_LIFECYCLE_NAMESPACES`), trigger name bug fix
+- [x] Legend colors match actual LED output (green/orange/red/slate)
+- [x] Dead CSS cleanup (`.led.green/.amber/.red/.blue/.off`, `.no-device-label`, `.np-meta`)
+- [x] Overlay badge CSS for pod-lifecycle (green) and webhook (orange)
+- [x] Status config persists on engine (`_status_checks`), survives mode switches
+- [x] Status config panel always visible (removed mode-gated `hidden`)
+- [x] Removed 409 rejection on `POST /status/config` when status mode not active
+- [x] Deduplicated `get_music_mode()` in `_do_broadcast`
+- [x] Extracted `_compute_severity()` — used by both broadcast and `/status` API
+- [x] Visual group labels (Monitoring / Patterns / Control) in action bar
+- [x] Distinct Status button styling
+- [x] Mode descriptions de-jargoned (removed "Prometheus", "NTP")
+- [x] Clock sync thresholds relaxed: ok < 100ms (was 50), warn < 500ms (was 200)

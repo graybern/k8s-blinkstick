@@ -293,7 +293,10 @@ The dashboard renders alert banners when nodes exceed health thresholds. Warning
 | GET | `/api/v1/events` | Event log (optional `?type=` filter) |
 | GET | `/api/v1/mqtt/messages` | MQTT inspector (last 100 messages) |
 | GET | `/api/v1/metrics` | Prometheus metrics (exposition format) |
+| GET | `/api/v1/status/config` | Status mode check configuration |
+| POST | `/api/v1/status/config` | Update status checks (cpu, memory, disk, k8s_ready) |
 | GET | `/api/v1/overlays` | Overlay services with enabled/active state |
+| POST | `/api/v1/overlays/{name}/toggle` | Enable/disable overlay at runtime |
 | GET | `/api/v1/overlays/active` | Current active overlay or null |
 | POST | `/api/v1/webhook/flash` | External LED flash trigger (optional auth) |
 | POST | `/api/v1/morse/send` | Send Morse code (text + wpm) |
@@ -427,6 +430,7 @@ See [TODO.md](TODO.md) for the full phased plan.
 - **UX Quality Pass** — 30-commit polish session: DOM refactor, LED popovers, live music viz, editor tools (fill row/column, drag paint, undo, move beats), Patterns rename (complete)
 - **Phase 4b** — Event Overlays + Creative Modes (complete): mode registry, overlay layer, 6 background modes, 4 foreground modes, 5 overlay sources, Loki + AlertManager service clients
 - **Post-Phase 4** — Network traffic mode, webhook overlay, pod lifecycle overlay, Morse code blinker, countdown timer (complete)
+- **UX Polish** — Calm defaults (all overlays OFF), runtime overlay toggles, status config persistence, legend color fix, visual group labels, clock skew threshold tuning (complete)
 
 ## Acknowledgements
 

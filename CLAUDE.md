@@ -121,15 +121,15 @@ The controller runs a layered mode engine:
 
 | Layer | Behavior | Examples |
 |-------|----------|----------|
-| **Background** | Continuous, steady-state | Status, Knight Rider, Rainbow Wave, Breathing, Temperature |
-| **Event overlay** | Brief 3-5s interrupts, fades back | Twingate Connection, Deploy Wave, Alert Escalation |
-| **Foreground** | Full takeover, explicit stop | Music, Direct Control |
+| **Background** | Continuous, steady-state | Status, Knight Rider, Rainbow Wave, Breathing, Temperature, Network |
+| **Event overlay** | Brief 3-5s interrupts, fades back | Twingate, Deploy, Alert, Pod Lifecycle, Webhook |
+| **Foreground** | Full takeover, explicit stop | Music, Direct, Morse, Countdown |
 
 LED assignment strategies per mode: `unified` (both LEDs same), `split` (LED 0 = background, LED 1 = overlay), `independent` (each LED runs a different thing).
 
 **Mode registry**: `MODE_REGISTRY` dict maps name → `{factory, layer, led_strategy}`. `register_mode()` adds entries at module level. `set_mode()` does a registry lookup and calls the factory with a deps dict (`{"mqtt": ..., "prometheus": ..., "song_store": ...}`). New modes register themselves; no `if/elif` chain.
 
-**Overlay layer**: Priority-based single slot, not a stack. `trigger_overlay(name, reason, priority, duration, color, effect, params)` enqueues an overlay event. Higher priority preempts active overlay (AlertManager=3 > ArgoCD=2 > Twingate=1). During `_tick()`, if an overlay is active and no foreground mode: engine merges LED 0 from background + LED 1 from overlay color/effect. Overlays are suppressed during any foreground mode (music, direct). Expired overlays promote the next from queue. Overlay pollers are services (start/stop with engine), not modes.
+**Overlay layer**: Priority-based single slot, not a stack. `trigger_overlay(name, reason, priority, duration, color, effect, params)` enqueues an overlay event. Higher priority preempts active overlay (AlertManager=3 > ArgoCD=2 > Twingate=1). During `_tick()`, if an overlay is active and no foreground mode: engine merges LED 0 from background + LED 1 from overlay color/effect. Overlays are suppressed during any foreground mode (music, direct). Expired overlays promote the next from queue. Overlay pollers are services (start/stop with engine), not modes. **All overlays default to OFF** (calm by default, opt-in) — enable at runtime via `POST /api/v1/overlays/{name}/toggle` or set env vars `OVERLAY_*_ENABLED=true`. Runtime toggle state is stored on the engine in `_overlay_enabled` dict, initialized from config env vars on startup.
 
 ### Controller Design
 
@@ -142,6 +142,8 @@ LED assignment strategies per mode: `unified` (both LEDs same), `split` (LED 0 =
 - **Event log** — in-memory ring buffer (200 events) recording every MQTT publish, mode switch, playback action
 - **MQTT inspector** — wildcard subscription to `blinkstick/#` for debugging, stored in ring buffer
 - **Prometheus metrics** — `/metrics` endpoint with `prometheus_client` (counters, gauges, histograms for mode switches, commands, clock skew, tick duration, overlay triggers)
+- **Status checks persist on engine** — `_status_checks` dict survives mode switches, applied to new StatusMode instances on creation. Configurable via `GET/POST /api/v1/status/config`.
+- **Runtime overlay toggles** — `_overlay_enabled` dict on engine, init from config env vars. `POST /api/v1/overlays/{name}/toggle` + dashboard toggle UI. All overlays default OFF.
 
 ### Frontend Patterns
 
