@@ -345,6 +345,22 @@ async def get_active_overlay(request: Request) -> dict | None:
     }
 
 
+@router.post("/morse/send")
+async def morse_send(request: Request) -> dict:
+    engine = request.app.state.engine
+    body = await request.json()
+    text = body.get("text", "")
+    if not text:
+        return JSONResponse(status_code=400, content={"error": "text is required"})
+    wpm = int(body.get("wpm", 15))
+    if engine.active_mode != "morse":
+        engine.run_coroutine(engine.set_mode("morse"))
+    from controller.engine.morse_mode import MorseMode
+    if isinstance(engine._foreground_mode, MorseMode):
+        engine._foreground_mode.send(text, wpm)
+    return {"status": "sending", "text": text, "wpm": wpm}
+
+
 @router.post("/webhook/flash")
 async def webhook_flash(request: Request) -> dict:
     from controller.config import OVERLAY_WEBHOOK_ENABLED, WEBHOOK_AUTH_TOKEN

@@ -458,6 +458,7 @@ const MODE_DESCRIPTIONS = {
   'breathing': 'CPU-proportional pulse — fast when busy, slow when idle',
   'temperature': 'CPU thermal heatmap — blue cool, green warm, red hot',
   'network': 'Network throughput — blue RX, green TX, brightness = traffic',
+  'morse': 'Morse code blinker — all LEDs flash white in unison',
 };
 
 async function toggleModePopover() {

@@ -16,6 +16,7 @@ from controller.engine.rainbow_mode import RainbowMode
 from controller.engine.breathing_mode import BreathingMode
 from controller.engine.temperature_mode import TemperatureMode
 from controller.engine.network_mode import NetworkMode
+from controller.engine.morse_mode import MorseMode
 from controller.engine.twingate_mode import TwingateOverlay
 from controller.engine.deploy_mode import DeployOverlay
 from controller.engine.alert_mode import AlertOverlay
@@ -63,6 +64,7 @@ register_mode("rainbow-wave", lambda deps: RainbowMode(deps["mqtt"]), "backgroun
 register_mode("breathing", lambda deps: BreathingMode(deps["prometheus"], deps["mqtt"]), "background", "unified")
 register_mode("temperature", lambda deps: TemperatureMode(deps["prometheus"], deps["mqtt"]), "background", "unified")
 register_mode("network", lambda deps: NetworkMode(deps["prometheus"], deps["mqtt"]), "background", "unified")
+register_mode("morse", lambda deps: MorseMode(deps["mqtt"]), "foreground", "unified")
 
 
 class ModeEngine:
