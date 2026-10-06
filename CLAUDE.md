@@ -250,13 +250,17 @@ controller/
     temperature_mode.py # Background: thermal heatmap
     twingate_mode.py    # Event overlay: Loki connection log → cyan blink
     alert_mode.py       # Event overlay: AlertManager critical → red blink
+    pod_lifecycle_mode.py # Event overlay: pod create/delete flash
+    network_mode.py     # Background: RX/TX throughput (blue/green)
+    morse_mode.py       # Foreground: Morse code blinker
+    countdown_mode.py   # Foreground: visual countdown timer
     presets.py          # Built-in pattern generators (chase, rainbow, etc.)
   services/
     mqtt_client.py
     prometheus.py        # httpx → Prometheus API + instance mapping
     loki.py              # httpx → Loki API (query, query_range)
     alertmanager.py      # httpx → AlertManager API (alerts, firing critical)
-    k8s.py               # httpx → K8s API (ConfigMaps, ArgoCD Applications)
+    k8s.py               # httpx → K8s API (ConfigMaps, ArgoCD Applications, Pods)
     song_store.py
     event_log.py
     metrics.py

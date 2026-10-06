@@ -316,10 +316,9 @@ mosquitto_pub -t blinkstick/cmd/octolet-control-2 -m \
 
 ---
 
-## Future (post-Phase 4)
-- [ ] Pod Lifecycle overlay
-- [ ] Countdown Timer foreground mode
-- [ ] Simon Says game
-- [ ] Morse Code message blinker
-- [ ] Network Traffic background mode
-- [ ] Notification Flash webhook overlay
+## Post-Phase 4 Features ✅ COMPLETE (2026-10-05)
+- [x] Network Traffic background mode (blue RX, green TX, logarithmic brightness)
+- [x] Notification Flash webhook overlay (POST /api/v1/webhook/flash)
+- [x] Pod Lifecycle overlay (green flash on create, amber blink on delete)
+- [x] Morse Code blinker foreground mode (POST /api/v1/morse/send)
+- [x] Countdown Timer foreground mode (POST /api/v1/timer/start, green→red→flash)
