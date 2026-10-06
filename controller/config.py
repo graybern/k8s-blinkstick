@@ -22,6 +22,8 @@ OVERLAY_DEPLOY_ENABLED = os.environ.get("OVERLAY_DEPLOY_ENABLED", "true").lower(
 OVERLAY_ALERT_ENABLED = os.environ.get("OVERLAY_ALERT_ENABLED", "true").lower() == "true"
 OVERLAY_WEBHOOK_ENABLED = os.environ.get("OVERLAY_WEBHOOK_ENABLED", "true").lower() == "true"
 WEBHOOK_AUTH_TOKEN = os.environ.get("WEBHOOK_AUTH_TOKEN", "")
+OVERLAY_POD_LIFECYCLE_ENABLED = os.environ.get("OVERLAY_POD_LIFECYCLE_ENABLED", "true").lower() == "true"
+POD_LIFECYCLE_POLL_INTERVAL = int(os.environ.get("POD_LIFECYCLE_POLL_INTERVAL", "10"))
 
 _node_order = os.environ.get("PHYSICAL_NODE_ORDER", "")
 PHYSICAL_NODE_ORDER = [n.strip() for n in _node_order.split(",") if n.strip()] or None

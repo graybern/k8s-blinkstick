@@ -19,6 +19,7 @@ from controller.engine.network_mode import NetworkMode
 from controller.engine.twingate_mode import TwingateOverlay
 from controller.engine.deploy_mode import DeployOverlay
 from controller.engine.alert_mode import AlertOverlay
+from controller.engine.pod_lifecycle_mode import PodLifecycleOverlay
 
 log = logging.getLogger(__name__)
 
@@ -250,11 +251,13 @@ class ModeEngine:
         from controller.config import (
             OVERLAY_TWINGATE_ENABLED, OVERLAY_DEPLOY_ENABLED,
             OVERLAY_ALERT_ENABLED, OVERLAY_WEBHOOK_ENABLED,
+            OVERLAY_POD_LIFECYCLE_ENABLED,
         )
         flag_map = {
             "twingate-flash": OVERLAY_TWINGATE_ENABLED,
             "deploy-wave": OVERLAY_DEPLOY_ENABLED,
             "alert-escalation": OVERLAY_ALERT_ENABLED,
+            "pod-lifecycle": OVERLAY_POD_LIFECYCLE_ENABLED,
         }
         active_name = self._active_overlay["name"] if self._active_overlay else None
         result = [
@@ -312,6 +315,7 @@ class ModeEngine:
             TwingateOverlay(self, self._loki),
             DeployOverlay(self, self._k8s),
             AlertOverlay(self, self._alertmanager),
+            PodLifecycleOverlay(self, self._k8s),
         ]
         for overlay in overlays:
             await overlay.start()

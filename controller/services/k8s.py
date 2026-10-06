@@ -126,6 +126,19 @@ class K8sClient:
             log.exception("Failed to delete ConfigMap %s/%s", namespace, name)
             return False
 
+    async def list_pods(self, namespace: str | None = None) -> list[dict]:
+        client = self._get_client()
+        if not client:
+            return []
+        try:
+            path = f"/api/v1/namespaces/{namespace}/pods" if namespace else "/api/v1/pods"
+            resp = await client.get(path)
+            resp.raise_for_status()
+            return resp.json().get("items", [])
+        except Exception:
+            log.exception("Failed to list pods%s", f" in {namespace}" if namespace else "")
+            return []
+
     async def list_applications(self, namespace: str = "argocd") -> list[dict]:
         client = self._get_client()
         if not client:
