@@ -152,8 +152,8 @@ function updateAllViews(data) {
   }
   if (data.playback !== undefined) {
     renderNowPlaying(document.getElementById('now-playing'), data.playback);
-    updatePresetButtons(data.playback);
   }
+  updatePresetButtons(data.playback);
   renderOverlayBadge(document.getElementById('overlay-badge'), data.active_overlay, data.overlay_reason);
 
   const eventsEl = document.getElementById('events');
@@ -750,6 +750,10 @@ function updatePresetButtons(playback) {
   document.querySelectorAll('[data-preset]').forEach(btn => {
     btn.classList.toggle('primary', btn.dataset.preset === song);
   });
+  const mode = _lastStatusData?.active_mode || '';
+  document.querySelectorAll('[data-mode]').forEach(btn => {
+    btn.classList.toggle('primary', btn.dataset.mode === mode && !song);
+  });
 }
 
 async function playPreset(name) {
@@ -780,7 +784,7 @@ async function initDashboard() {
   const actions = document.getElementById('actions');
   if (actions) {
     actions.innerHTML = `
-      <button class="btn" onclick="setMode('status')">Status</button>
+      <button class="btn" data-mode="status" onclick="setMode('status')">Status</button>
       <div class="action-sep"></div>
       <button class="btn" data-preset="chase" onclick="playPreset('chase')">Chase</button>
       <button class="btn" data-preset="alternate" onclick="playPreset('alternate')">Alternate</button>
