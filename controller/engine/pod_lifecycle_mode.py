@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from controller.config import POD_LIFECYCLE_POLL_INTERVAL, OVERLAY_POD_LIFECYCLE_ENABLED
+from controller.config import POD_LIFECYCLE_POLL_INTERVAL, OVERLAY_POD_LIFECYCLE_ENABLED, POD_LIFECYCLE_NAMESPACES
 
 log = logging.getLogger(__name__)
 
@@ -57,6 +57,8 @@ class PodLifecycleOverlay:
             ns = meta.get("namespace", "")
             if not name:
                 continue
+            if POD_LIFECYCLE_NAMESPACES and ns not in POD_LIFECYCLE_NAMESPACES:
+                continue
             key = f"{ns}/{name}"
             current.add(key)
             pod_meta[key] = (ns, name)
@@ -72,8 +74,8 @@ class PodLifecycleOverlay:
         for key in added:
             ns, name = pod_meta.get(key, (key, key))
             self._engine.trigger_overlay(
-                "pod-created",
-                reason=f"Pod: {ns}/{name}",
+                "pod-lifecycle",
+                reason=f"Created: {ns}/{name}",
                 priority=1,
                 duration=3.0,
                 color=(0, 255, 100),
@@ -83,8 +85,8 @@ class PodLifecycleOverlay:
 
         for key in removed:
             self._engine.trigger_overlay(
-                "pod-deleted",
-                reason=f"Pod: {key}",
+                "pod-lifecycle",
+                reason=f"Deleted: {key}",
                 priority=1,
                 duration=3.0,
                 color=(255, 140, 0),

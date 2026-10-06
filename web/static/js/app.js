@@ -154,8 +154,8 @@ function updateAllViews(data) {
     renderNowPlaying(document.getElementById('now-playing'), data.playback);
   }
   updatePresetButtons(data.playback);
-  updateStatusConfigVisibility();
   renderOverlayBadge(document.getElementById('overlay-badge'), data.active_overlay, data.overlay_reason);
+  if (data.overlay_services) renderOverlayToggles(document.getElementById('overlay-toggles'), data.overlay_services);
 
   const eventsEl = document.getElementById('events');
   if (eventsEl && Date.now() - _lastEventFetch > 3000) {
@@ -178,10 +178,10 @@ function renderLEDStrip(container, nodes) {
     const legend = document.createElement('div');
     legend.className = 'legend';
     legend.innerHTML =
-      '<div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span>healthy</div>' +
-      '<div class="legend-item"><span class="legend-dot" style="background:#eab308"></span>warning</div>' +
-      '<div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>critical</div>' +
-      '<div class="legend-item"><span class="legend-dot" style="background:#6366f1"></span>offline</div>';
+      '<div class="legend-item"><span class="legend-dot" style="background:#00ff00"></span>healthy</div>' +
+      '<div class="legend-item"><span class="legend-dot" style="background:#ff8c00"></span>warning</div>' +
+      '<div class="legend-item"><span class="legend-dot" style="background:#ff0000"></span>critical</div>' +
+      '<div class="legend-item"><span class="legend-dot" style="background:#334155"></span>offline</div>';
     container.appendChild(legend);
     container._ledBuilt = true;
     container._ledNodeKey = '';
@@ -405,9 +405,9 @@ function renderPanels(container, data) {
   const healthDetail = total - healthy > 0 ? `${total - healthy} warning` : 'all healthy';
   const skews = data.nodes?.map(n => n.device?.clock_skew_ms).filter(s => s != null) || [];
   const maxSkew = skews.length ? Math.round(Math.max(...skews)) : null;
-  const syncClass = maxSkew === null ? 'ok' : maxSkew < 50 ? 'ok' : maxSkew < 200 ? 'warn' : 'danger';
+  const syncClass = maxSkew === null ? 'ok' : maxSkew < 100 ? 'ok' : maxSkew < 500 ? 'warn' : 'danger';
   const syncVal = maxSkew !== null ? `<${maxSkew + 1}ms` : '--';
-  const syncDetail = maxSkew === null ? 'tap to check' : maxSkew < 50 ? 'all synced' : `max ${maxSkew}ms`;
+  const syncDetail = maxSkew === null ? 'tap to check' : maxSkew < 100 ? 'all synced' : `max ${maxSkew}ms`;
 
   if (!container._panelsBuilt) {
     container.innerHTML = `
@@ -451,16 +451,16 @@ function renderPanels(container, data) {
 // ── Mode popover ──
 
 const MODE_DESCRIPTIONS = {
-  status: 'Prometheus health → green breathing, amber warning, red critical',
+  status: 'Cluster health — green breathing, amber warning, red critical',
   direct: 'Manual per-node LED control with color pickers',
-  music: 'Synchronized beat sheet playback via NTP clock sync',
+  music: 'Synchronized beat sheet playback across all nodes',
   'knight-rider': 'Red scanner sweep with trailing glow across all nodes',
   'rainbow-wave': 'Traveling hue rotation across all LEDs',
   'breathing': 'CPU-proportional pulse — fast when busy, slow when idle',
   'temperature': 'CPU thermal heatmap — blue cool, green warm, red hot',
-  'network': 'Network throughput — blue RX, green TX, brightness = traffic',
+  'network': 'Network throughput — blue receive, green transmit',
   'morse': 'Morse code blinker — all LEDs flash white in unison',
-  'countdown': 'Visual countdown timer — green→red→flash',
+  'countdown': 'Visual countdown timer — green to red with completion flash',
 };
 
 async function toggleModePopover() {
@@ -784,9 +784,28 @@ async function updateStatusConfig() {
   await apiPost('/status/config', { checks });
 }
 
-function updateStatusConfigVisibility() {
-  const el = document.getElementById('status-config');
-  if (el) el.hidden = (_lastStatusData?.active_mode !== 'status');
+// ── Overlay toggles ──
+
+function renderOverlayToggles(container, services) {
+  if (!container || !services) return;
+  if (!container._built) {
+    container.innerHTML = '';
+    container._built = true;
+    container._keys = '';
+  }
+  const keys = services.map(s => `${s.name}:${s.enabled ? 1 : 0}:${s.active ? 1 : 0}`).join(',');
+  if (keys === container._keys) return;
+  container._keys = keys;
+  container.innerHTML = services.map(s => `
+    <label class="overlay-toggle">
+      <input type="checkbox" ${s.enabled ? 'checked' : ''} onchange="toggleOverlay('${s.name}', this.checked)">
+      <span class="overlay-toggle-name">${s.name}</span>
+      ${s.active ? '<span class="overlay-toggle-active">active</span>' : ''}
+    </label>`).join('');
+}
+
+async function toggleOverlay(name, enabled) {
+  await apiPost(`/overlays/${name}/toggle`, { enabled });
 }
 
 // ── Dashboard init ──
@@ -811,14 +830,17 @@ async function initDashboard() {
   const actions = document.getElementById('actions');
   if (actions) {
     actions.innerHTML = `
-      <button class="btn" data-mode="status" onclick="setMode('status')">Status</button>
+      <span class="action-group-label">Monitoring</span>
+      <button class="btn status-btn" data-mode="status" onclick="setMode('status')">Status</button>
       <div class="action-sep"></div>
+      <span class="action-group-label">Patterns</span>
       <button class="btn" data-preset="chase" onclick="playPreset('chase')">Chase</button>
       <button class="btn" data-preset="alternate" onclick="playPreset('alternate')">Alternate</button>
       <button class="btn" data-preset="rainbow" onclick="playPreset('rainbow')">Rainbow</button>
       <button class="btn" data-preset="flash" onclick="playPreset('flash')">Flash</button>
       <button class="btn" data-preset="police" onclick="playPreset('police')">Police</button>
       <div class="action-sep"></div>
+      <span class="action-group-label">Control</span>
       <button class="btn" data-action="all-off" onclick="allOff(this)">All off</button>
       <button class="btn danger" onclick="stopPlayback()">Stop</button>`;
   }

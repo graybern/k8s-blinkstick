@@ -56,9 +56,7 @@ async def get_status(request: Request) -> StatusResponse:
             if status_mode:
                 sev, color, effect, params = status_mode._compute_state(name, h)
             else:
-                sev = "healthy" if h.get("up") else "critical"
-                if h.get("cpu", 0) > 0.7 or h.get("memory", 0) > 0.7 or h.get("disk", 0) > 0.8:
-                    sev = "warning"
+                sev = engine._compute_severity(name, h)
                 color, effect, params = (0, 0, 0), "solid", {}
             health = NodeHealth(
                 name=name,
@@ -130,10 +128,7 @@ async def set_active_mode(request: Request, body: ModeSwitch) -> dict:
 @router.get("/status/config")
 async def get_status_config(request: Request) -> dict:
     engine = request.app.state.engine
-    status_mode = engine.get_status_mode()
-    if not status_mode:
-        return {"checks": {"cpu": True, "memory": True, "disk": True, "k8s_ready": True}}
-    return {"checks": status_mode.get_checks()}
+    return {"checks": engine.get_status_checks()}
 
 
 @router.post("/status/config")
@@ -141,11 +136,8 @@ async def set_status_config(request: Request) -> dict:
     engine = request.app.state.engine
     body = await request.json()
     checks = body.get("checks", {})
-    status_mode = engine.get_status_mode()
-    if status_mode:
-        status_mode.set_checks(checks)
-        return {"checks": status_mode.get_checks()}
-    return JSONResponse(status_code=409, content={"error": "Status mode not active"})
+    engine.set_status_checks(checks)
+    return {"checks": engine.get_status_checks()}
 
 
 @router.post("/direct")
@@ -351,6 +343,15 @@ async def clock_check(request: Request) -> dict:
 async def get_overlays(request: Request) -> list[dict]:
     engine = request.app.state.engine
     return engine.get_overlay_services_state()
+
+
+@router.post("/overlays/{name}/toggle")
+async def toggle_overlay(request: Request, name: str) -> dict:
+    engine = request.app.state.engine
+    body = await request.json()
+    enabled = bool(body.get("enabled", False))
+    engine.toggle_overlay(name, enabled)
+    return {"name": name, "enabled": enabled}
 
 
 @router.get("/overlays/active")

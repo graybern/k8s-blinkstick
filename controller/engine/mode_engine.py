@@ -57,7 +57,13 @@ class DirectMode:
         return None
 
 
-register_mode("status", lambda deps: StatusMode(deps["prometheus"], deps["mqtt"]), "background", "unified")
+def _create_status_mode(deps):
+    mode = StatusMode(deps["prometheus"], deps["mqtt"])
+    if deps.get("_status_checks"):
+        mode.set_checks(deps["_status_checks"])
+    return mode
+
+register_mode("status", _create_status_mode, "background", "unified")
 register_mode("direct", lambda deps: DirectMode(), "foreground", "unified")
 register_mode("music", lambda deps: MusicMode(deps["mqtt"], deps["song_store"]), "foreground", "unified")
 register_mode("knight-rider", lambda deps: KnightRiderMode(deps["mqtt"]), "background", "unified")
@@ -94,6 +100,8 @@ class ModeEngine:
         self._overlay_queue: deque[dict] = deque(maxlen=20)
         self._active_overlay: dict | None = None
         self._overlay_services: list = []
+        self._status_checks = {"cpu": True, "memory": True, "disk": True, "k8s_ready": True}
+        self._overlay_enabled: dict[str, bool] = {}
 
     def set_loop(self, loop: asyncio.AbstractEventLoop):
         self._loop = loop
@@ -119,6 +127,7 @@ class ModeEngine:
             "loki": self._loki,
             "alertmanager": self._alertmanager,
             "k8s": self._k8s,
+            "_status_checks": self._status_checks,
         }
 
     def get_available_modes(self) -> list[dict]:
@@ -139,6 +148,21 @@ class ModeEngine:
         if self._background_mode and hasattr(self._background_mode, 'get_node_health'):
             return self._background_mode.get_node_health()
         return self._last_health
+
+    def get_status_checks(self) -> dict[str, bool]:
+        return dict(self._status_checks)
+
+    def set_status_checks(self, checks: dict[str, bool]):
+        for key in ("cpu", "memory", "disk", "k8s_ready"):
+            if key in checks:
+                self._status_checks[key] = bool(checks[key])
+        status_mode = self.get_status_mode()
+        if status_mode:
+            status_mode.set_checks(self._status_checks)
+
+    def toggle_overlay(self, name: str, enabled: bool):
+        self._overlay_enabled[name] = enabled
+        log.info("Overlay %s %s", name, "enabled" if enabled else "disabled")
 
     def get_music_mode(self) -> MusicMode | None:
         if isinstance(self._foreground_mode, MusicMode):
@@ -252,29 +276,18 @@ class ModeEngine:
         return self._active_overlay
 
     def get_overlay_services_state(self) -> list[dict]:
-        from controller.config import (
-            OVERLAY_TWINGATE_ENABLED, OVERLAY_DEPLOY_ENABLED,
-            OVERLAY_ALERT_ENABLED, OVERLAY_WEBHOOK_ENABLED,
-            OVERLAY_POD_LIFECYCLE_ENABLED,
-        )
-        flag_map = {
-            "twingate-flash": OVERLAY_TWINGATE_ENABLED,
-            "deploy-wave": OVERLAY_DEPLOY_ENABLED,
-            "alert-escalation": OVERLAY_ALERT_ENABLED,
-            "pod-lifecycle": OVERLAY_POD_LIFECYCLE_ENABLED,
-        }
         active_name = self._active_overlay["name"] if self._active_overlay else None
         result = [
             {
                 "name": svc.name,
-                "enabled": flag_map.get(svc.name, False),
+                "enabled": self._overlay_enabled.get(svc.name, False),
                 "active": svc.name == active_name,
             }
             for svc in self._overlay_services
         ]
         result.append({
             "name": "webhook",
-            "enabled": OVERLAY_WEBHOOK_ENABLED,
+            "enabled": self._overlay_enabled.get("webhook", False),
             "active": active_name == "webhook",
         })
         return result
@@ -315,6 +328,18 @@ class ModeEngine:
         return merged
 
     async def _start_overlay_services(self):
+        from controller.config import (
+            OVERLAY_TWINGATE_ENABLED, OVERLAY_DEPLOY_ENABLED,
+            OVERLAY_ALERT_ENABLED, OVERLAY_WEBHOOK_ENABLED,
+            OVERLAY_POD_LIFECYCLE_ENABLED,
+        )
+        self._overlay_enabled = {
+            "twingate-flash": OVERLAY_TWINGATE_ENABLED,
+            "deploy-wave": OVERLAY_DEPLOY_ENABLED,
+            "alert-escalation": OVERLAY_ALERT_ENABLED,
+            "pod-lifecycle": OVERLAY_POD_LIFECYCLE_ENABLED,
+            "webhook": OVERLAY_WEBHOOK_ENABLED,
+        }
         overlays = [
             TwingateOverlay(self, self._loki),
             DeployOverlay(self, self._k8s),
@@ -400,6 +425,27 @@ class ModeEngine:
             clean.pop("_severity", None)
             self._last_published[node] = clean
 
+    def _compute_severity(self, name: str, h: dict) -> str:
+        if isinstance(self._background_mode, StatusMode):
+            sev, _, _, _ = self._background_mode._compute_state(name, h)
+            return sev
+        checks = self._status_checks
+        if not h.get("up"):
+            return "critical"
+        if checks.get("cpu") and h.get("cpu", 0) > 0.9:
+            return "critical"
+        if checks.get("memory") and h.get("memory", 0) > 0.9:
+            return "critical"
+        if checks.get("disk") and h.get("disk", 0) > 0.9:
+            return "critical"
+        if checks.get("cpu") and h.get("cpu", 0) > 0.7:
+            return "warning"
+        if checks.get("memory") and h.get("memory", 0) > 0.7:
+            return "warning"
+        if checks.get("disk") and h.get("disk", 0) > 0.8:
+            return "warning"
+        return "healthy"
+
     def _do_broadcast(self):
         if not self._broadcast_fn or not self._main_loop:
             return
@@ -416,12 +462,7 @@ class ModeEngine:
             health = None
             h = health_data.get(name)
             if h:
-                if isinstance(self._background_mode, StatusMode):
-                    sev, color, effect, params = self._background_mode._compute_state(name, h)
-                else:
-                    sev = "healthy" if h.get("up") else "critical"
-                    if h.get("cpu", 0) > 0.7 or h.get("memory", 0) > 0.7 or h.get("disk", 0) > 0.8:
-                        sev = "warning"
+                sev = self._compute_severity(name, h)
                 health = {
                     "severity": sev,
                     "cpu_usage": h.get("cpu", 0),
@@ -443,17 +484,18 @@ class ModeEngine:
                 "health": health,
             })
         playback = None
-        music = self.get_music_mode()
         if music:
             ps = music.get_playback_state()
             playback = {"playing": ps.playing, "song": ps.song, "beat_index": ps.beat_index, "total_beats": ps.total_beats, "elapsed": ps.elapsed}
         overlay = self._active_overlay
+        overlay_services = self.get_overlay_services_state()
         data = {
             "nodes": nodes,
             "active_mode": self._active_mode_name,
             "playback": playback,
             "active_overlay": overlay["name"] if overlay else None,
             "overlay_reason": overlay["reason"] if overlay else None,
+            "overlay_services": overlay_services,
         }
         try:
             asyncio.run_coroutine_threadsafe(self._broadcast_fn(data), self._main_loop)

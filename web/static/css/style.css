@@ -142,11 +142,6 @@ body {
   border: 1px solid var(--led-ring);
   transition: background 0.4s, box-shadow 0.4s;
 }
-.led.green { background: #22c55e; box-shadow: 0 0 12px 3px rgba(34,197,94,0.5), 0 0 32px 8px rgba(34,197,94,0.1); }
-.led.amber { background: #eab308; box-shadow: 0 0 12px 3px rgba(234,179,8,0.5), 0 0 32px 8px rgba(234,179,8,0.1); }
-.led.red { background: #ef4444; box-shadow: 0 0 12px 3px rgba(239,68,68,0.5), 0 0 32px 8px rgba(239,68,68,0.1); }
-.led.blue { background: #6366f1; box-shadow: 0 0 10px 3px rgba(99,102,241,0.4); }
-.led.off { background: var(--border); box-shadow: none; }
 .led.led-off { background: var(--raised); box-shadow: none; opacity: 0.35; border: 2px dashed var(--muted); }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
 .led.breathe { animation: breathe 3s ease-in-out infinite; }
@@ -158,6 +153,8 @@ body {
 .overlay-badge[data-overlay="twingate-flash"] { background: rgba(0,255,255,0.15); color: #00ffff; border: 1px solid rgba(0,255,255,0.3); }
 .overlay-badge[data-overlay="deploy-wave"] { background: rgba(0,100,255,0.15); color: #4488ff; border: 1px solid rgba(0,100,255,0.3); }
 .overlay-badge[data-overlay="alert-escalation"] { background: rgba(255,0,0,0.15); color: #ff4444; border: 1px solid rgba(255,0,0,0.3); }
+.overlay-badge[data-overlay="pod-lifecycle"] { background: rgba(0,255,100,0.15); color: #00ff64; border: 1px solid rgba(0,255,100,0.3); }
+.overlay-badge[data-overlay="webhook"] { background: rgba(255,140,0,0.15); color: #ff8c00; border: 1px solid rgba(255,140,0,0.3); }
 
 .legend { display: flex; justify-content: center; gap: 16px; padding: 12px 0 0; font-size: 10px; color: var(--muted); }
 .legend-item { display: flex; align-items: center; gap: 5px; }
@@ -216,7 +213,6 @@ body {
 .now-playing[hidden] { display: none; }
 .np-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .np-song { font-weight: 600; color: var(--accent); }
-.np-meta { color: var(--dim); }
 .np-spacer { flex: 1; }
 .np-time { color: var(--dim); font-variant-numeric: tabular-nums; }
 .np-stop {
@@ -277,7 +273,6 @@ body {
 .led-mini.led-mini-off { opacity: 0.3; border: 1px dashed var(--muted); }
 .val { font-size: 11px; color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; }
 .val.hot { color: var(--warning); font-weight: 500; }
-.no-device-label { font-size: 10px; color: var(--muted); grid-column: 2 / -1; }
 .node-detail {
   grid-column: 1 / -1; padding-top: 8px; margin-top: 8px;
   border-top: 1px solid var(--border);
@@ -289,6 +284,9 @@ body {
 /* ── Actions ── */
 .action-bar { display: flex; gap: 6px; padding: 8px 0 16px; flex-wrap: wrap; align-items: center; justify-content: center; }
 .action-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.action-group-label { font-size: 9px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+.status-btn { border-color: var(--accent); color: var(--accent); }
+.status-btn.primary { background: var(--accent); color: #fff; }
 .status-config { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 0 0 12px; font-size: 12px; }
 .status-config-label { color: var(--dim); font-weight: 500; }
 .status-check { display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--fg); }
@@ -309,6 +307,13 @@ body {
 .btn.danger { border-color: var(--danger); color: var(--danger); }
 .btn.danger:hover { background: var(--danger-dim); }
 .btn.danger:active { background: rgba(239,68,68,0.18); transition: background 0ms; }
+
+/* ── Overlay toggles ── */
+.overlay-toggles { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 0 0 12px; flex-wrap: wrap; }
+.overlay-toggle { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 11px; color: var(--dim); }
+.overlay-toggle input { accent-color: var(--accent); }
+.overlay-toggle-name { font-weight: 500; }
+.overlay-toggle-active { font-size: 9px; color: var(--accent); background: var(--accent-dim); padding: 1px 5px; border-radius: 2px; }
 
 /* ── Forms ── */
 h2 { font-size: 14px; color: var(--dim); font-weight: 600; margin: 16px 0 8px; }
