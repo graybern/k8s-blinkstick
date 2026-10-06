@@ -154,6 +154,7 @@ function updateAllViews(data) {
     renderNowPlaying(document.getElementById('now-playing'), data.playback);
   }
   updatePresetButtons(data.playback);
+  updateStatusConfigVisibility();
   renderOverlayBadge(document.getElementById('overlay-badge'), data.active_overlay, data.overlay_reason);
 
   const eventsEl = document.getElementById('events');
@@ -763,6 +764,31 @@ async function playPreset(name) {
   await apiPost(`/presets/${name}/play`, { bpm, color, color2 });
 }
 
+// ── Status config ──
+
+async function loadStatusConfig() {
+  const cfg = await apiGet('/status/config');
+  if (!cfg) return;
+  for (const [key, val] of Object.entries(cfg.checks || {})) {
+    const el = document.getElementById(`chk-${key}`);
+    if (el) el.checked = val;
+  }
+}
+
+async function updateStatusConfig() {
+  const checks = {};
+  for (const key of ['cpu', 'memory', 'disk', 'k8s_ready']) {
+    const el = document.getElementById(`chk-${key}`);
+    if (el) checks[key] = el.checked;
+  }
+  await apiPost('/status/config', { checks });
+}
+
+function updateStatusConfigVisibility() {
+  const el = document.getElementById('status-config');
+  if (el) el.hidden = (_lastStatusData?.active_mode !== 'status');
+}
+
 // ── Dashboard init ──
 
 async function initDashboard() {
@@ -780,6 +806,7 @@ async function initDashboard() {
   if (events) renderEvents(document.getElementById('events'), events);
 
   apiPost('/clock/check').catch(() => {});
+  loadStatusConfig();
 
   const actions = document.getElementById('actions');
   if (actions) {

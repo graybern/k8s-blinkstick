@@ -289,6 +289,10 @@ body {
 /* ── Actions ── */
 .action-bar { display: flex; gap: 6px; padding: 8px 0 16px; flex-wrap: wrap; align-items: center; justify-content: center; }
 .action-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.status-config { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 0 0 12px; font-size: 12px; }
+.status-config-label { color: var(--dim); font-weight: 500; }
+.status-check { display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--fg); }
+.status-check input { accent-color: var(--accent); }
 .btn {
   padding: 0 16px; height: 44px;
   background: var(--surface); border: 1px solid var(--border);

@@ -127,6 +127,27 @@ async def set_active_mode(request: Request, body: ModeSwitch) -> dict:
     return {"mode": engine.active_mode}
 
 
+@router.get("/status/config")
+async def get_status_config(request: Request) -> dict:
+    engine = request.app.state.engine
+    status_mode = engine.get_status_mode()
+    if not status_mode:
+        return {"checks": {"cpu": True, "memory": True, "disk": True, "k8s_ready": True}}
+    return {"checks": status_mode.get_checks()}
+
+
+@router.post("/status/config")
+async def set_status_config(request: Request) -> dict:
+    engine = request.app.state.engine
+    body = await request.json()
+    checks = body.get("checks", {})
+    status_mode = engine.get_status_mode()
+    if status_mode:
+        status_mode.set_checks(checks)
+        return {"checks": status_mode.get_checks()}
+    return JSONResponse(status_code=409, content={"error": "Status mode not active"})
+
+
 @router.post("/direct")
 async def direct_control(request: Request, body: LEDCommand) -> dict:
     engine = request.app.state.engine

@@ -26,6 +26,15 @@ class StatusMode:
         self._mqtt_client = mqtt_client
         self._node_health: dict[str, dict] = {}
         self._poll_task: asyncio.Task | None = None
+        self._checks = {"cpu": True, "memory": True, "disk": True, "k8s_ready": True}
+
+    def get_checks(self) -> dict[str, bool]:
+        return dict(self._checks)
+
+    def set_checks(self, checks: dict[str, bool]):
+        for key in ("cpu", "memory", "disk", "k8s_ready"):
+            if key in checks:
+                self._checks[key] = bool(checks[key])
 
     async def start(self):
         try:
@@ -81,19 +90,35 @@ class StatusMode:
         memory = health.get("memory")
         disk = health.get("disk")
 
-        if cpu is None or memory is None or disk is None:
+        checks = self._checks
+
+        if not up:
             color, effect, params = SEVERITY_COLORS["critical"]
             return "critical", color, effect, params
 
-        if not up or not k8s_ready:
+        if checks["k8s_ready"] and not k8s_ready:
             color, effect, params = SEVERITY_COLORS["critical"]
             return "critical", color, effect, params
 
-        if cpu > 0.9 or memory > 0.9 or disk > 0.9:
+        critical_conditions = []
+        if checks["cpu"] and cpu is not None and cpu > 0.9:
+            critical_conditions.append(True)
+        if checks["memory"] and memory is not None and memory > 0.9:
+            critical_conditions.append(True)
+        if checks["disk"] and disk is not None and disk > 0.9:
+            critical_conditions.append(True)
+        if critical_conditions:
             color, effect, params = SEVERITY_COLORS["critical"]
             return "critical", color, effect, params
 
-        if cpu > 0.7 or memory > 0.7 or disk > 0.8:
+        warning_conditions = []
+        if checks["cpu"] and cpu is not None and cpu > 0.7:
+            warning_conditions.append(True)
+        if checks["memory"] and memory is not None and memory > 0.7:
+            warning_conditions.append(True)
+        if checks["disk"] and disk is not None and disk > 0.8:
+            warning_conditions.append(True)
+        if warning_conditions:
             color, effect, params = SEVERITY_COLORS["warning"]
             return "warning", color, effect, params
 

@@ -4,6 +4,13 @@
 {% block content %}
 <div class="section-head" style="padding-top:0"><span class="section-title">Built-in Patterns</span></div>
 <div class="action-bar" id="actions"></div>
+<div class="status-config" id="status-config" hidden>
+  <span class="status-config-label">Status checks:</span>
+  <label class="status-check"><input type="checkbox" id="chk-cpu" checked onchange="updateStatusConfig()"> CPU</label>
+  <label class="status-check"><input type="checkbox" id="chk-memory" checked onchange="updateStatusConfig()"> Memory</label>
+  <label class="status-check"><input type="checkbox" id="chk-disk" checked onchange="updateStatusConfig()"> Disk</label>
+  <label class="status-check"><input type="checkbox" id="chk-k8s_ready" checked onchange="updateStatusConfig()"> K8s Ready</label>
+</div>
 <div class="now-playing" id="now-playing" hidden></div>
 <div class="panels" id="panels"></div>
 <section class="node-section" id="nodes"></section>
