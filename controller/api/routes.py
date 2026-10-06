@@ -345,6 +345,28 @@ async def get_active_overlay(request: Request) -> dict | None:
     }
 
 
+@router.post("/timer/start")
+async def timer_start(request: Request) -> dict:
+    engine = request.app.state.engine
+    body = await request.json()
+    duration = float(body.get("duration_seconds", 0))
+    if duration <= 0:
+        return JSONResponse(status_code=400, content={"error": "duration_seconds must be positive"})
+    if engine.active_mode != "countdown":
+        engine.run_coroutine(engine.set_mode("countdown"))
+    from controller.engine.countdown_mode import CountdownMode
+    if isinstance(engine._foreground_mode, CountdownMode):
+        engine._foreground_mode.configure(duration)
+    return {"status": "started", "duration_seconds": duration}
+
+
+@router.post("/timer/stop")
+async def timer_stop(request: Request) -> dict:
+    engine = request.app.state.engine
+    engine.run_coroutine(engine.set_mode("status"))
+    return {"status": "stopped", "mode": "status"}
+
+
 @router.post("/morse/send")
 async def morse_send(request: Request) -> dict:
     engine = request.app.state.engine

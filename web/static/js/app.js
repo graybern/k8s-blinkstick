@@ -459,6 +459,7 @@ const MODE_DESCRIPTIONS = {
   'temperature': 'CPU thermal heatmap — blue cool, green warm, red hot',
   'network': 'Network throughput — blue RX, green TX, brightness = traffic',
   'morse': 'Morse code blinker — all LEDs flash white in unison',
+  'countdown': 'Visual countdown timer — green→red→flash',
 };
 
 async function toggleModePopover() {
