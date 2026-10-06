@@ -248,7 +248,8 @@ class ModeEngine:
 
     def get_overlay_services_state(self) -> list[dict]:
         from controller.config import (
-            OVERLAY_TWINGATE_ENABLED, OVERLAY_DEPLOY_ENABLED, OVERLAY_ALERT_ENABLED,
+            OVERLAY_TWINGATE_ENABLED, OVERLAY_DEPLOY_ENABLED,
+            OVERLAY_ALERT_ENABLED, OVERLAY_WEBHOOK_ENABLED,
         )
         flag_map = {
             "twingate-flash": OVERLAY_TWINGATE_ENABLED,
@@ -256,7 +257,7 @@ class ModeEngine:
             "alert-escalation": OVERLAY_ALERT_ENABLED,
         }
         active_name = self._active_overlay["name"] if self._active_overlay else None
-        return [
+        result = [
             {
                 "name": svc.name,
                 "enabled": flag_map.get(svc.name, False),
@@ -264,6 +265,12 @@ class ModeEngine:
             }
             for svc in self._overlay_services
         ]
+        result.append({
+            "name": "webhook",
+            "enabled": OVERLAY_WEBHOOK_ENABLED,
+            "active": active_name == "webhook",
+        })
+        return result
 
     def _check_overlay_expiry(self):
         if not self._active_overlay:

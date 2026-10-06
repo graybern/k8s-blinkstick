@@ -345,6 +345,30 @@ async def get_active_overlay(request: Request) -> dict | None:
     }
 
 
+@router.post("/webhook/flash")
+async def webhook_flash(request: Request) -> dict:
+    from controller.config import OVERLAY_WEBHOOK_ENABLED, WEBHOOK_AUTH_TOKEN
+    if not OVERLAY_WEBHOOK_ENABLED:
+        return JSONResponse(status_code=403, content={"error": "Webhook overlay disabled"})
+    if WEBHOOK_AUTH_TOKEN:
+        token = request.headers.get("X-Webhook-Token", "")
+        if token != WEBHOOK_AUTH_TOKEN:
+            return JSONResponse(status_code=401, content={"error": "Invalid or missing X-Webhook-Token"})
+    body = await request.json()
+    reason = body.get("reason")
+    if not reason:
+        return JSONResponse(status_code=400, content={"error": "reason is required"})
+    color = tuple(body.get("color", [255, 255, 255]))[:3]
+    duration = float(body.get("duration", 3))
+    priority = int(body.get("priority", 1))
+    effect = body.get("effect", "blink")
+    params = body.get("params", {})
+    engine = request.app.state.engine
+    engine.trigger_overlay("webhook", reason=reason, priority=priority,
+                           duration=duration, color=color, effect=effect, params=params)
+    return {"status": "triggered", "reason": reason, "duration": duration}
+
+
 @router.get("/metrics")
 async def prometheus_metrics():
     body, content_type = get_metrics_response()
